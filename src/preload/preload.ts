@@ -8,7 +8,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('save-window-size', size),
   moveWindow: (deltaX: number, deltaY: number) => {
     ipcRenderer.send('window-move', { deltaX, deltaY });
-  }
+  },
+  openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url)
 });
 
 declare global {
@@ -19,6 +20,7 @@ declare global {
       getWindowSize: () => Promise<{ width: number; height: number } | null>;
       saveWindowSize: (size: { width: number; height: number }) => Promise<void>;
       moveWindow: (deltaX: number, deltaY: number) => void;
+      openExternalUrl: (url: string) => Promise<void>;
     };
   }
 }

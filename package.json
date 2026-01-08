@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build && cp src/preload/preload.cjs dist-electron/preload/preload.cjs",
+    "build": "tsc && vite build && cp src/preload/preload.cjs dist-electron/preload/preload.cjs && cp electron-loader.cjs dist-electron/electron-loader.cjs",
     "preview": "vite preview",
     "electron:dev": "electron .",
     "electron:build": "npm run build && electron-builder",

@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from "react";
 
 interface VideoControlsProps {
   player: any;
@@ -8,47 +8,38 @@ interface VideoControlsProps {
 export function VideoControls({ player, videoId }: VideoControlsProps) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const lastUpdateTimeRef = useRef<number>(Date.now());
+  const lastKnownTimeRef = useRef<number>(0);
   const [isPlaying, setIsPlaying] = useState(true); // Assumir que está tocando inicialmente (autoplay)
-  const [isPiPActive, setIsPiPActive] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
 
   if (!videoId) {
     return null;
   }
 
-  // Verificar se a API de PiP está disponível
-  const isPiPSupported = 'pictureInPictureEnabled' in document;
-
-  // Monitorar mudanças no estado de PiP
-  useEffect(() => {
-    if (!isPiPSupported) return;
-
-    const handlePiPChange = () => {
-      setIsPiPActive(!!document.pictureInPictureElement);
-    };
-
-    document.addEventListener('enterpictureinpicture', handlePiPChange);
-    document.addEventListener('leavepictureinpicture', handlePiPChange);
-
-    return () => {
-      document.removeEventListener('enterpictureinpicture', handlePiPChange);
-      document.removeEventListener('leavepictureinpicture', handlePiPChange);
-    };
-  }, [isPiPSupported]);
-
   // Atualizar progresso do vídeo usando listener de mensagens do YouTube
   useEffect(() => {
-    if (!player || !videoId || isSeeking) return;
+    if (!player || !videoId) return;
 
     let cleanup: (() => void) | undefined;
 
     if (player?.onProgress) {
       cleanup = player.onProgress((time: number, dur: number) => {
-        if (!isSeeking && time !== undefined && dur !== undefined) {
-          if (dur > 0) setDuration(dur);
-          if (time >= 0) setCurrentTime(time);
+        if (time !== undefined && dur !== undefined) {
+          // Sempre atualizar duração quando disponível
+          if (dur > 0) {
+            setDuration(dur);
+          }
+          // Atualizar tempo atual apenas se não estiver arrastando
+          if (!isSeeking && time >= 0) {
+            setCurrentTime(time);
+            lastKnownTimeRef.current = time;
+            lastUpdateTimeRef.current = Date.now();
+          }
         }
       });
     }
@@ -60,45 +51,53 @@ export function VideoControls({ player, videoId }: VideoControlsProps) {
       }
     };
 
-    const interval = setInterval(requestProgress, 1000);
+    // Sistema de atualização contínua baseado em estimativa
+    const updateProgress = () => {
+      if (!isSeeking && isPlaying) {
+        const now = Date.now();
+        const elapsed = (now - lastUpdateTimeRef.current) / 1000;
+        const newTime = lastKnownTimeRef.current + elapsed;
+
+        // Atualizar apenas se temos duração ou se ainda não chegamos no limite
+        if (duration > 0) {
+          if (newTime <= duration) {
+            setCurrentTime(newTime);
+          } else {
+            setCurrentTime(duration);
+          }
+        } else {
+          // Sem duração, apenas incrementar
+          setCurrentTime(newTime);
+        }
+      }
+    };
+
+    const requestInterval = setInterval(requestProgress, 2000);
+    const updateInterval = setInterval(updateProgress, 500);
 
     return () => {
       if (cleanup) cleanup();
-      clearInterval(interval);
+      clearInterval(requestInterval);
+      clearInterval(updateInterval);
     };
-  }, [player, videoId, isSeeking]);
+  }, [player, videoId, isSeeking, isPlaying, duration]);
 
-  // Tentar encontrar elemento video dentro do iframe do YouTube
-  // Nota: Isso pode não funcionar devido a restrições de cross-origin
-  const tryNativePiP = async () => {
-    if (!isPiPSupported) {
-      console.log('API de Picture-in-Picture não é suportada');
-      return;
-    }
-
-    try {
-      // Tentar encontrar um elemento video (pode não funcionar com iframe do YouTube)
-      const video = document.querySelector('video');
-
-      if (video && video.readyState >= 2) {
-        if (document.pictureInPictureElement) {
-          await document.exitPictureInPicture();
-        } else {
-          await video.requestPictureInPicture();
-        }
-      } else {
-        console.log('Elemento video não encontrado ou não está pronto');
-        // A API nativa de PiP não funciona com iframes do YouTube
-        // A janela Electron já está configurada como PiP
-      }
-    } catch (error) {
-      console.error('Erro ao ativar PiP nativo:', error);
-      // A janela Electron já funciona como PiP
-    }
+  const formatTime = (seconds: number): string => {
+    if (!seconds || isNaN(seconds)) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  // Se não tiver duração, usar uma estimativa padrão para permitir arrastar
+  const effectiveDuration = duration > 0 ? duration : 600; // 10 minutos padrão
+  const progressPercentage =
+    effectiveDuration > 0 ? (currentTime / effectiveDuration) * 100 : 0;
+
   const togglePlayPause = () => {
-    const iframe = document.querySelector('.youtube-iframe-element') as HTMLIFrameElement;
+    const iframe = document.querySelector(
+      ".youtube-iframe-element"
+    ) as HTMLIFrameElement;
 
     if (isPlaying) {
       // Pausar
@@ -106,8 +105,8 @@ export function VideoControls({ player, videoId }: VideoControlsProps) {
         player.pause();
       } else if (iframe?.contentWindow) {
         iframe.contentWindow.postMessage(
-          JSON.stringify({ event: 'command', func: 'pauseVideo', args: '' }),
-          'https://www.youtube.com'
+          JSON.stringify({ event: "command", func: "pauseVideo", args: "" }),
+          "https://www.youtube.com"
         );
       }
       setIsPlaying(false);
@@ -117,11 +116,13 @@ export function VideoControls({ player, videoId }: VideoControlsProps) {
         player.play();
       } else if (iframe?.contentWindow) {
         iframe.contentWindow.postMessage(
-          JSON.stringify({ event: 'command', func: 'playVideo', args: '' }),
-          'https://www.youtube.com'
+          JSON.stringify({ event: "command", func: "playVideo", args: "" }),
+          "https://www.youtube.com"
         );
       }
       setIsPlaying(true);
+      // Resetar tempo de atualização quando começar a tocar
+      // O sistema de atualização vai continuar a partir do currentTime atual
     }
   };
 
@@ -129,67 +130,116 @@ export function VideoControls({ player, videoId }: VideoControlsProps) {
     const percentage = parseFloat(e.target.value);
     setIsSeeking(true);
     // Atualizar visualmente enquanto arrasta
-    if (duration > 0) {
-      const seekTime = (percentage / 100) * duration;
-      setCurrentTime(seekTime);
-    }
+    const seekTime = (percentage / 100) * effectiveDuration;
+    setCurrentTime(seekTime);
+  };
+
+  const handleProgressMouseDown = () => {
+    setIsSeeking(true);
   };
 
   const handleProgressMouseUp = () => {
-    if (player?.seekTo && duration > 0 && progressRef.current) {
+    if (player?.seekTo && progressRef.current) {
       const percentage = parseFloat(progressRef.current.value);
-      const seekTime = (percentage / 100) * duration;
+      const seekTime = (percentage / 100) * effectiveDuration;
       player.seekTo(seekTime);
       setCurrentTime(seekTime);
+      lastKnownTimeRef.current = seekTime;
+      lastUpdateTimeRef.current = Date.now();
     }
     setIsSeeking(false);
   };
 
-  const formatTime = (seconds: number): string => {
-    if (!seconds || isNaN(seconds)) return '0:00';
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  const handleProgressTouchEnd = () => {
+    if (player?.seekTo && progressRef.current) {
+      const percentage = parseFloat(progressRef.current.value);
+      const seekTime = (percentage / 100) * effectiveDuration;
+      player.seekTo(seekTime);
+      setCurrentTime(seekTime);
+      lastKnownTimeRef.current = seekTime;
+      lastUpdateTimeRef.current = Date.now();
+    }
+    setIsSeeking(false);
   };
 
-  const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
+  // Controlar visibilidade dos controles com hover na janela
+  useEffect(() => {
+    const appContainer = document.querySelector(".app-container");
+    if (!appContainer) return;
+
+    let hideTimeout: NodeJS.Timeout | null = null;
+
+    const handleMouseMove = () => {
+      setIsVisible(true);
+      // Limpar timeout anterior
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
+      }
+      // Esconder após 2 segundos sem movimento
+      hideTimeout = setTimeout(() => {
+        setIsVisible(false);
+      }, 2000);
+    };
+
+    const handleMouseLeave = () => {
+      setIsVisible(false);
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
+      }
+    };
+
+    // Detectar movimento do mouse no container do app
+    appContainer.addEventListener("mousemove", handleMouseMove);
+    appContainer.addEventListener("mouseleave", handleMouseLeave);
+
+    return () => {
+      appContainer.removeEventListener("mousemove", handleMouseMove);
+      appContainer.removeEventListener("mouseleave", handleMouseLeave);
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
+      }
+    };
+  }, []);
 
   return (
-    <div ref={controlsRef} className="video-controls-container">
-      <div className="video-progress-container">
-        <span className="video-time">{formatTime(currentTime)}</span>
-        <input
-          ref={progressRef}
-          type="range"
-          min="0"
-          max="100"
-          step="0.1"
-          value={progressPercentage}
-          onChange={handleProgressChange}
-          onMouseUp={handleProgressMouseUp}
-          onTouchEnd={handleProgressMouseUp}
-          className="video-progress-slider"
-          title="Arraste para buscar no vídeo"
-        />
-        <span className="video-time">{formatTime(duration)}</span>
-      </div>
-      <div className="video-controls-floating">
-        <button
-          className="control-button play-pause-button"
-          onClick={togglePlayPause}
-          title={isPlaying ? "Pausar" : "Play"}
-        >
-          {isPlaying ? '⏸' : '▶'}
-        </button>
-        {isPiPSupported && (
+    <div
+      ref={containerRef}
+      className="video-controls-wrapper"
+      onMouseEnter={() => setIsVisible(true)}
+      onMouseMove={() => setIsVisible(true)}
+    >
+      <div
+        ref={controlsRef}
+        className={`video-controls-container ${
+          isVisible ? "visible" : "hidden"
+        }`}
+      >
+        <div className="video-progress-container">
           <button
-            className="control-button pip-button"
-            onClick={tryNativePiP}
-            title={isPiPActive ? "Sair do PiP" : "Ativar PiP nativo"}
+            className="control-button-small play-pause-button"
+            onClick={togglePlayPause}
+            title={isPlaying ? "Pausar" : "Play"}
           >
-            {isPiPActive ? '⛶' : '⊞'}
+            {isPlaying ? "⏸" : "▶"}
           </button>
-        )}
+          <span className="video-time">{formatTime(currentTime)}</span>
+          <input
+            ref={progressRef}
+            type="range"
+            min="0"
+            max="100"
+            step="0.1"
+            value={progressPercentage}
+            onChange={handleProgressChange}
+            onMouseDown={handleProgressMouseDown}
+            onMouseUp={handleProgressMouseUp}
+            onTouchStart={handleProgressMouseDown}
+            onTouchEnd={handleProgressTouchEnd}
+            className="video-progress-slider"
+            title="Arraste para buscar no vídeo"
+          />
+          <span className="video-time">{formatTime(effectiveDuration)}</span>
+        </div>
       </div>
     </div>
   );

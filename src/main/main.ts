@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Tray, nativeImage } from 'electron';
+import { app, BrowserWindow, ipcMain, Tray, nativeImage, shell } from 'electron';
 import { createWindow, applyMacOSPiPSettings } from './window';
 import { registerShortcuts, unregisterShortcuts } from './shortcuts';
 import { stopServer } from './server';
@@ -167,4 +167,9 @@ ipcMain.on('window-move', (_event: any, { deltaX, deltaY }: any) => {
     const [x, y] = mainWindow.getPosition();
     mainWindow.setPosition(x + deltaX, y + deltaY);
   }
+});
+
+// Handler para abrir URL no navegador
+ipcMain.handle('open-external-url', (_: any, url: string) => {
+  shell.openExternal(url);
 });

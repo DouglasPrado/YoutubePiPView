@@ -2,10 +2,12 @@ appId: com.ytview.app
 productName: YTView
 directories:
   buildResources: build
+  output: dist
 files:
   - dist/**/*
   - dist-electron/**/*
-  - package.json
+extraMetadata:
+  main: dist-electron/electron-loader.cjs
 mac:
   category: public.app-category.entertainment
   target:

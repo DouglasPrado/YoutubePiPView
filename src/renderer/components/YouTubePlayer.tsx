@@ -40,6 +40,13 @@ export function YouTubePlayer({
     let progressCallbacks: Array<
       (currentTime: number, duration: number) => void
     > = [];
+    let videoStartTime = Date.now();
+    let lastKnownTime = 0;
+    let isPaused = false;
+    let estimatedDuration = 0;
+
+    // Nota: A API do YouTube IFrame Player não funciona bem com iframes embed existentes
+    // Vamos usar apenas postMessage e estimativa de tempo
 
     // Listener global para mensagens do YouTube
     const messageHandler = (event: MessageEvent) => {
@@ -48,22 +55,49 @@ export function YouTubePlayer({
         const data =
           typeof event.data === "string" ? JSON.parse(event.data) : event.data;
 
-        // YouTube envia informações de progresso em alguns eventos
-        if (
-          data?.info?.currentTime !== undefined &&
-          data?.info?.duration !== undefined
-        ) {
-          progressCallbacks.forEach((cb) =>
-            cb(data.info.currentTime, data.info.duration)
-          );
+        // Capturar diferentes tipos de mensagens do YouTube
+        if (data?.event === "onStateChange") {
+          // Estado mudou (playing, paused, etc)
+          if (data.info === 1) {
+            // Playing
+            isPaused = false;
+            videoStartTime = Date.now() - lastKnownTime * 1000;
+          } else if (data.info === 2) {
+            // Paused
+            isPaused = true;
+          }
         }
-        // Também pode vir em formato diferente
-        if (data?.info?.videoData?.length_seconds) {
-          const duration = parseFloat(data.info.videoData.length_seconds);
-          if (data?.info?.currentTime !== undefined) {
+
+        // Tentar capturar informações de progresso
+        if (data?.info?.currentTime !== undefined) {
+          lastKnownTime = data.info.currentTime;
+          if (data?.info?.duration !== undefined) {
+            estimatedDuration = data.info.duration;
             progressCallbacks.forEach((cb) =>
-              cb(data.info.currentTime, duration)
+              cb(data.info.currentTime, data.info.duration)
             );
+          } else if (estimatedDuration > 0) {
+            progressCallbacks.forEach((cb) =>
+              cb(data.info.currentTime, estimatedDuration)
+            );
+          }
+        }
+
+        // Capturar duração do vídeo
+        if (data?.info?.videoData?.length_seconds) {
+          estimatedDuration = parseFloat(data.info.videoData.length_seconds);
+          if (lastKnownTime > 0) {
+            progressCallbacks.forEach((cb) =>
+              cb(lastKnownTime, estimatedDuration)
+            );
+          }
+        }
+
+        // Capturar informações de vídeo carregado
+        if (data?.info?.videoData) {
+          const videoData = data.info.videoData;
+          if (videoData.length_seconds) {
+            estimatedDuration = parseFloat(videoData.length_seconds);
           }
         }
       } catch (e) {
@@ -73,6 +107,24 @@ export function YouTubePlayer({
 
     window.addEventListener("message", messageHandler);
 
+    // Sistema de atualização de progresso
+    let progressInterval: NodeJS.Timeout | null = null;
+
+    const startProgressEstimation = () => {
+      if (progressInterval) return;
+
+      progressInterval = setInterval(() => {
+        // Usar estimativa baseada em tempo
+        if (!isPaused && estimatedDuration > 0) {
+          const elapsed = (Date.now() - videoStartTime) / 1000;
+          if (elapsed <= estimatedDuration && elapsed >= 0) {
+            lastKnownTime = elapsed;
+            progressCallbacks.forEach((cb) => cb(elapsed, estimatedDuration));
+          }
+        }
+      }, 500);
+    };
+
     // Aguardar um pouco para o iframe carregar
     const timer = setTimeout(() => {
       if (iframeRef.current) {
@@ -80,6 +132,8 @@ export function YouTubePlayer({
           play: () => {
             const iframe = iframeRef.current;
             if (iframe?.contentWindow) {
+              isPaused = false;
+              videoStartTime = Date.now() - lastKnownTime * 1000;
               iframe.contentWindow.postMessage(
                 JSON.stringify({
                   event: "command",
@@ -89,10 +143,12 @@ export function YouTubePlayer({
                 "https://www.youtube.com"
               );
             }
+            startProgressEstimation();
           },
           pause: () => {
             const iframe = iframeRef.current;
             if (iframe?.contentWindow) {
+              isPaused = true;
               iframe.contentWindow.postMessage(
                 JSON.stringify({
                   event: "command",
@@ -106,6 +162,8 @@ export function YouTubePlayer({
           seekTo: (seconds: number) => {
             const iframe = iframeRef.current;
             if (iframe?.contentWindow) {
+              lastKnownTime = seconds;
+              videoStartTime = Date.now() - seconds * 1000;
               iframe.contentWindow.postMessage(
                 JSON.stringify({
                   event: "command",
@@ -114,6 +172,12 @@ export function YouTubePlayer({
                 }),
                 "https://www.youtube.com"
               );
+              // Atualizar callbacks imediatamente
+              if (estimatedDuration > 0) {
+                progressCallbacks.forEach((cb) =>
+                  cb(seconds, estimatedDuration)
+                );
+              }
             }
           },
           onProgress: (
@@ -138,16 +202,26 @@ export function YouTubePlayer({
                 }),
                 "https://www.youtube.com"
               );
+              // Também solicitar estado atual
+              iframe.contentWindow.postMessage(
+                JSON.stringify({
+                  event: "listening",
+                  id: iframeRef.current?.id || "widget",
+                }),
+                "https://www.youtube.com"
+              );
             }
           },
           getIframe: () => iframeRef.current,
         };
         onPlayerReady(player);
+        startProgressEstimation();
       }
-    }, 1000); // Aguardar 1 segundo para o iframe carregar
+    }, 2000); // Aguardar 2 segundos para o iframe carregar
 
     return () => {
       clearTimeout(timer);
+      if (progressInterval) clearInterval(progressInterval);
       window.removeEventListener("message", messageHandler);
     };
   }, [videoId, onPlayerReady]);
@@ -201,6 +275,22 @@ export function YouTubePlayer({
         title="Trocar vídeo"
       >
         ↻
+      </div>
+      <div
+        className="open-youtube-button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const youtubeUrl = videoId
+            ? `https://www.youtube.com/watch?v=${videoId}`
+            : "https://www.youtube.com";
+          if (window.electronAPI) {
+            window.electronAPI.openExternalUrl(youtubeUrl);
+          }
+        }}
+        title="Abrir no YouTube"
+      >
+        🔗
       </div>
     </div>
   );
