@@ -11,6 +11,7 @@ export function App() {
   const [showInput, setShowInput] = useState(false);
   const [appState, setAppState] = useState<AppState>("idle");
   const [player, setPlayer] = useState<any>(null);
+  const [showControls, setShowControls] = useState(false);
 
   useEffect(() => {
     // Carregar último vídeo salvo ao iniciar
@@ -100,6 +101,31 @@ export function App() {
     setPlayer(playerInstance);
   };
 
+  // Controlar visibilidade dos controles com hover na janela toda
+  useEffect(() => {
+    let hideTimeout: NodeJS.Timeout | null = null;
+
+    const handleMouseMove = () => {
+      setShowControls(true);
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
+      }
+      hideTimeout = setTimeout(() => {
+        setShowControls(false);
+      }, 2000);
+    };
+
+    // Adicionar listener no documento para capturar movimento em toda a janela
+    document.addEventListener("mousemove", handleMouseMove, true);
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove, true);
+      if (hideTimeout) {
+        clearTimeout(hideTimeout);
+      }
+    };
+  }, []);
+
   return (
     <div
       className="app-container"
@@ -111,14 +137,26 @@ export function App() {
         flexDirection: "column",
       }}
     >
+      {/* Overlay invisível para capturar eventos de mouse em toda a janela */}
+      <div
+        className="mouse-detector-overlay"
+        onMouseMove={() => setShowControls(true)}
+      />
       <YouTubePlayer
         videoId={videoId}
         onPlayerClick={handlePlayerClick}
         isLoading={isLoading}
         onPlayerReady={handlePlayerReady}
+        showControls={showControls}
       />
       {isLoading && <div className="loading-spinner" />}
-      {videoId && <VideoControls player={player} videoId={videoId} />}
+      {videoId && (
+        <VideoControls
+          player={player}
+          videoId={videoId}
+          showControls={showControls}
+        />
+      )}
       <VideoInput
         isVisible={showInput}
         onClose={handleInputClose}

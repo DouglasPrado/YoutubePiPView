@@ -1,4 +1,4 @@
-import { ExternalLink, X } from "lucide-react";
+import { ExternalLink, Minus, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 interface YouTubePlayerProps {
@@ -6,6 +6,7 @@ interface YouTubePlayerProps {
   onPlayerClick: () => void;
   isLoading: boolean;
   onPlayerReady?: (player: any) => void;
+  showControls?: boolean;
 }
 
 export function YouTubePlayer({
@@ -13,9 +14,22 @@ export function YouTubePlayer({
   onPlayerClick,
   isLoading,
   onPlayerReady,
+  showControls = false,
 }: YouTubePlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const playerRef = useRef<any>(null);
+  const videoStateRef = useRef<{
+    videoStartTime: number;
+    lastKnownTime: number;
+    isPaused: boolean;
+    estimatedDuration: number;
+  }>({
+    videoStartTime: Date.now(),
+    lastKnownTime: 0,
+    isPaused: false,
+    estimatedDuration: 0,
+  });
 
   console.log("[YouTubePlayer] Renderizando com videoId:", videoId);
 
@@ -23,10 +37,17 @@ export function YouTubePlayer({
   useEffect(() => {
     if (iframeRef.current && videoId) {
       const currentOrigin = window.location.origin || "http://localhost:8765";
-      const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&rel=0&playsinline=1&modestbranding=1&fs=0&enablejsapi=1&origin=${encodeURIComponent(
+      const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&rel=0&playsinline=1&modestbranding=0&fs=0&enablejsapi=1&origin=${encodeURIComponent(
         currentOrigin
-      )}`;
+      )}&iv_load_policy=3&disablekb=1&cc_load_policy=0`;
       iframeRef.current.src = embedUrl;
+      // Resetar estado quando mudar o vídeo
+      videoStateRef.current = {
+        videoStartTime: Date.now(),
+        lastKnownTime: 0,
+        isPaused: false,
+        estimatedDuration: 0,
+      };
     }
   }, [videoId]);
 
@@ -38,10 +59,7 @@ export function YouTubePlayer({
     let progressCallbacks: Array<
       (currentTime: number, duration: number) => void
     > = [];
-    let videoStartTime = Date.now();
-    let lastKnownTime = 0;
-    let isPaused = false;
-    let estimatedDuration = 0;
+    const state = videoStateRef.current;
 
     // Listener global para mensagens do YouTube
     const messageHandler = (event: MessageEvent) => {
@@ -54,35 +72,37 @@ export function YouTubePlayer({
         if (data?.event === "onStateChange") {
           if (data.info === 1) {
             // Playing
-            isPaused = false;
-            videoStartTime = Date.now() - lastKnownTime * 1000;
+            state.isPaused = false;
+            state.videoStartTime = Date.now() - state.lastKnownTime * 1000;
           } else if (data.info === 2) {
             // Paused
-            isPaused = true;
+            state.isPaused = true;
           }
         }
 
         // Capturar informações de progresso
         if (data?.info?.currentTime !== undefined) {
-          lastKnownTime = data.info.currentTime;
+          state.lastKnownTime = data.info.currentTime;
           if (data?.info?.duration !== undefined) {
-            estimatedDuration = data.info.duration;
+            state.estimatedDuration = data.info.duration;
             progressCallbacks.forEach((cb) =>
               cb(data.info.currentTime, data.info.duration)
             );
-          } else if (estimatedDuration > 0) {
+          } else if (state.estimatedDuration > 0) {
             progressCallbacks.forEach((cb) =>
-              cb(data.info.currentTime, estimatedDuration)
+              cb(data.info.currentTime, state.estimatedDuration)
             );
           }
         }
 
         // Capturar duração do vídeo
         if (data?.info?.videoData?.length_seconds) {
-          estimatedDuration = parseFloat(data.info.videoData.length_seconds);
-          if (lastKnownTime > 0) {
+          state.estimatedDuration = parseFloat(
+            data.info.videoData.length_seconds
+          );
+          if (state.lastKnownTime > 0) {
             progressCallbacks.forEach((cb) =>
-              cb(lastKnownTime, estimatedDuration)
+              cb(state.lastKnownTime, state.estimatedDuration)
             );
           }
         }
@@ -91,15 +111,15 @@ export function YouTubePlayer({
         if (data?.info?.videoData) {
           const videoData = data.info.videoData;
           if (videoData.length_seconds) {
-            estimatedDuration = parseFloat(videoData.length_seconds);
+            state.estimatedDuration = parseFloat(videoData.length_seconds);
             // Notificar callbacks imediatamente quando obtemos a duração
-            if (lastKnownTime > 0) {
+            if (state.lastKnownTime > 0) {
               progressCallbacks.forEach((cb) =>
-                cb(lastKnownTime, estimatedDuration)
+                cb(state.lastKnownTime, state.estimatedDuration)
               );
             } else {
               // Se ainda não temos tempo, notificar com 0
-              progressCallbacks.forEach((cb) => cb(0, estimatedDuration));
+              progressCallbacks.forEach((cb) => cb(0, state.estimatedDuration));
             }
           }
         }
@@ -117,11 +137,13 @@ export function YouTubePlayer({
       if (progressInterval) return;
 
       progressInterval = setInterval(() => {
-        if (!isPaused && estimatedDuration > 0) {
-          const elapsed = (Date.now() - videoStartTime) / 1000;
-          if (elapsed <= estimatedDuration && elapsed >= 0) {
-            lastKnownTime = elapsed;
-            progressCallbacks.forEach((cb) => cb(elapsed, estimatedDuration));
+        if (!state.isPaused && state.estimatedDuration > 0) {
+          const elapsed = (Date.now() - state.videoStartTime) / 1000;
+          if (elapsed <= state.estimatedDuration && elapsed >= 0) {
+            state.lastKnownTime = elapsed;
+            progressCallbacks.forEach((cb) =>
+              cb(elapsed, state.estimatedDuration)
+            );
           }
         }
       }, 500);
@@ -134,8 +156,8 @@ export function YouTubePlayer({
           play: () => {
             const iframe = iframeRef.current;
             if (iframe?.contentWindow) {
-              isPaused = false;
-              videoStartTime = Date.now() - lastKnownTime * 1000;
+              state.isPaused = false;
+              state.videoStartTime = Date.now() - state.lastKnownTime * 1000;
               iframe.contentWindow.postMessage(
                 JSON.stringify({
                   event: "command",
@@ -150,7 +172,7 @@ export function YouTubePlayer({
           pause: () => {
             const iframe = iframeRef.current;
             if (iframe?.contentWindow) {
-              isPaused = true;
+              state.isPaused = true;
               iframe.contentWindow.postMessage(
                 JSON.stringify({
                   event: "command",
@@ -164,8 +186,8 @@ export function YouTubePlayer({
           seekTo: (seconds: number) => {
             const iframe = iframeRef.current;
             if (iframe?.contentWindow) {
-              lastKnownTime = seconds;
-              videoStartTime = Date.now() - seconds * 1000;
+              state.lastKnownTime = seconds;
+              state.videoStartTime = Date.now() - seconds * 1000;
               iframe.contentWindow.postMessage(
                 JSON.stringify({
                   event: "command",
@@ -175,9 +197,9 @@ export function YouTubePlayer({
                 "https://www.youtube.com"
               );
               // Atualizar callbacks imediatamente
-              if (estimatedDuration > 0) {
+              if (state.estimatedDuration > 0) {
                 progressCallbacks.forEach((cb) =>
-                  cb(seconds, estimatedDuration)
+                  cb(seconds, state.estimatedDuration)
                 );
               }
             }
@@ -187,8 +209,8 @@ export function YouTubePlayer({
           ) => {
             progressCallbacks.push(callback);
             // Se já temos duração, notificar imediatamente
-            if (estimatedDuration > 0) {
-              callback(lastKnownTime, estimatedDuration);
+            if (state.estimatedDuration > 0) {
+              callback(state.lastKnownTime, state.estimatedDuration);
             }
             return () => {
               progressCallbacks = progressCallbacks.filter(
@@ -219,7 +241,17 @@ export function YouTubePlayer({
             }
           },
           getIframe: () => iframeRef.current,
+          getCurrentTime: () => {
+            // Retornar o tempo atual estimado
+            const state = videoStateRef.current;
+            if (!state.isPaused && state.estimatedDuration > 0) {
+              const elapsed = (Date.now() - state.videoStartTime) / 1000;
+              return Math.min(elapsed, state.estimatedDuration);
+            }
+            return state.lastKnownTime;
+          },
         };
+        playerRef.current = player;
         onPlayerReady(player);
         startProgressEstimation();
       }
@@ -254,13 +286,15 @@ export function YouTubePlayer({
     typeof window !== "undefined"
       ? window.location.origin || "http://localhost:8765"
       : "http://localhost:8765";
-  const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&rel=0&playsinline=1&modestbranding=1&fs=0&enablejsapi=1&origin=${encodeURIComponent(
+  const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&rel=0&playsinline=1&modestbranding=0&fs=0&enablejsapi=1&origin=${encodeURIComponent(
     currentOrigin
-  )}`;
+  )}&iv_load_policy=3&disablekb=1&cc_load_policy=0`;
 
   return (
     <div
-      className={`youtube-player-container ${isLoading ? "loading" : ""}`}
+      className={`youtube-player-container ${isLoading ? "loading" : ""} ${
+        showControls ? "show-controls" : ""
+      }`}
       ref={containerRef}
     >
       <iframe
@@ -286,9 +320,18 @@ export function YouTubePlayer({
         onClick={async (e) => {
           e.preventDefault();
           e.stopPropagation();
-          const youtubeUrl = videoId
+          let youtubeUrl = videoId
             ? `https://www.youtube.com/watch?v=${videoId}`
             : "https://www.youtube.com";
+
+          // Adicionar tempo atual se disponível
+          if (videoId && playerRef.current?.getCurrentTime) {
+            const currentTime = Math.floor(playerRef.current.getCurrentTime());
+            if (currentTime > 0) {
+              youtubeUrl += `&t=${currentTime}s`;
+            }
+          }
+
           console.log("Abrindo URL:", youtubeUrl);
           if (window.electronAPI) {
             try {
@@ -304,6 +347,29 @@ export function YouTubePlayer({
         title="Abrir no YouTube"
       >
         <ExternalLink size={18} />
+      </div>
+      <div
+        className="minimize-button"
+        onClick={async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          // Pausar o vídeo antes de minimizar
+          if (playerRef.current?.pause) {
+            playerRef.current.pause();
+          }
+
+          if (window.electronAPI) {
+            try {
+              await window.electronAPI.minimizeWindow();
+            } catch (error) {
+              console.error("Erro ao minimizar:", error);
+            }
+          }
+        }}
+        title="Minimizar (pausar e tornar transparente)"
+      >
+        <Minus size={18} />
       </div>
       <div
         className="close-button"

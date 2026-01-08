@@ -40,6 +40,29 @@ html, body {
   -webkit-app-region: drag;
 }
 
+.mouse-detector-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 50;
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
+  background: transparent;
+}
+
+/* Permitir que elementos interativos fiquem acima da overlay */
+.change-video-button,
+.open-youtube-button,
+.minimize-button,
+.close-button,
+.video-controls-wrapper,
+.video-controls-container {
+  position: relative;
+  z-index: 100;
+}
+
 .youtube-player-container {
   width: 100%;
   height: 100%;
@@ -81,7 +104,7 @@ html, body {
 .change-video-button {
   position: absolute;
   top: 10px;
-  right: 10px;
+  right: 148px;
   width: 36px;
   height: 36px;
   background: rgba(0, 0, 0, 0.7);
@@ -101,7 +124,7 @@ html, body {
 .open-youtube-button {
   position: absolute;
   top: 10px;
-  right: 56px;
+  right: 102px;
   width: 36px;
   height: 36px;
   background: rgba(0, 0, 0, 0.7);
@@ -126,10 +149,38 @@ html, body {
   color: #fff;
 }
 
+.minimize-button {
+  position: absolute;
+  top: 10px;
+  right: 56px;
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 100;
+  color: #fff;
+  font-size: 20px;
+  transition: all 0.2s;
+  opacity: 0;
+  -webkit-app-region: no-drag;
+  pointer-events: auto;
+}
+
+.minimize-button svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  color: #fff;
+}
+
 .close-button {
   position: absolute;
   top: 10px;
-  right: 102px;
+  right: 10px;
   width: 36px;
   height: 36px;
   background: rgba(0, 0, 0, 0.7);
@@ -156,12 +207,18 @@ html, body {
 
 .youtube-player-container:hover .change-video-button,
 .youtube-player-container:hover .open-youtube-button,
-.youtube-player-container:hover .close-button {
+.youtube-player-container:hover .minimize-button,
+.youtube-player-container:hover .close-button,
+.youtube-player-container.show-controls .change-video-button,
+.youtube-player-container.show-controls .open-youtube-button,
+.youtube-player-container.show-controls .minimize-button,
+.youtube-player-container.show-controls .close-button {
   opacity: 1;
 }
 
 .change-video-button:hover,
 .open-youtube-button:hover,
+.minimize-button:hover,
 .close-button:hover {
   background: rgba(0, 0, 0, 0.9);
   transform: scale(1.1);
@@ -471,6 +528,7 @@ html, body {
   cursor: pointer;
   transition: all 0.2s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  margin-top: -5px; /* Centralizar verticalmente: (4px altura da barra - 14px altura do thumb) / 2 = -5px */
 }
 
 .video-progress-slider::-webkit-slider-thumb:hover {
@@ -487,6 +545,7 @@ html, body {
   border: none;
   transition: all 0.2s;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  /* Firefox centraliza automaticamente, mas podemos garantir com position */
 }
 
 .video-progress-slider::-moz-range-thumb:hover {

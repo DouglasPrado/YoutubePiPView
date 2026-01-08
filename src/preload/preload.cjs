@@ -10,6 +10,7 @@ try {
       ipcRenderer.send('window-move', { deltaX, deltaY });
     },
     openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url),
+    minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
     closeWindow: () => ipcRenderer.invoke('close-window')
   });
 } catch (error) {

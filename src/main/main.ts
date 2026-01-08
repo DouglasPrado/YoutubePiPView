@@ -181,6 +181,15 @@ ipcMain.handle('open-external-url', async (_: any, url: string) => {
   }
 });
 
+// Handler para minimizar a janela (pausar vídeo e tornar transparente)
+ipcMain.handle('minimize-window', () => {
+  if (mainWindow) {
+    // Tornar janela transparente
+    mainWindow.setOpacity(0.01); // Quase transparente, mas ainda visível para o sistema
+    mainWindow.setVisibleOnAllWorkspaces(false);
+  }
+});
+
 // Handler para fechar a aplicação completamente
 ipcMain.handle('close-window', () => {
   isQuitting = true;

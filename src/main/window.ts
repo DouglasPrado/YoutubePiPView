@@ -37,7 +37,7 @@ export async function createWindow(): Promise<
     x: storedPosition?.x,
     y: storedPosition?.y,
     frame: false,
-    transparent: false,
+    transparent: true, // Habilitar transparência para permitir setOpacity
     resizable: true,
     movable: true,
     fullscreenable: false,

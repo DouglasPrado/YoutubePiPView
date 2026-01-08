@@ -3,9 +3,14 @@ import { useEffect, useRef, useState } from "react";
 interface VideoControlsProps {
   player: any;
   videoId: string | null;
+  showControls?: boolean;
 }
 
-export function VideoControls({ player, videoId }: VideoControlsProps) {
+export function VideoControls({
+  player,
+  videoId,
+  showControls = false,
+}: VideoControlsProps) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -162,52 +167,13 @@ export function VideoControls({ player, videoId }: VideoControlsProps) {
     setIsSeeking(false);
   };
 
-  // Controlar visibilidade dos controles com hover na janela
+  // Usar o estado compartilhado de visibilidade
   useEffect(() => {
-    const appContainer = document.querySelector(".app-container");
-    if (!appContainer) return;
-
-    let hideTimeout: NodeJS.Timeout | null = null;
-
-    const handleMouseMove = () => {
-      setIsVisible(true);
-      // Limpar timeout anterior
-      if (hideTimeout) {
-        clearTimeout(hideTimeout);
-      }
-      // Esconder após 2 segundos sem movimento
-      hideTimeout = setTimeout(() => {
-        setIsVisible(false);
-      }, 2000);
-    };
-
-    const handleMouseLeave = () => {
-      setIsVisible(false);
-      if (hideTimeout) {
-        clearTimeout(hideTimeout);
-      }
-    };
-
-    // Detectar movimento do mouse no container do app
-    appContainer.addEventListener("mousemove", handleMouseMove);
-    appContainer.addEventListener("mouseleave", handleMouseLeave);
-
-    return () => {
-      appContainer.removeEventListener("mousemove", handleMouseMove);
-      appContainer.removeEventListener("mouseleave", handleMouseLeave);
-      if (hideTimeout) {
-        clearTimeout(hideTimeout);
-      }
-    };
-  }, []);
+    setIsVisible(showControls);
+  }, [showControls]);
 
   return (
-    <div
-      ref={containerRef}
-      className="video-controls-wrapper"
-      onMouseEnter={() => setIsVisible(true)}
-      onMouseMove={() => setIsVisible(true)}
-    >
+    <div ref={containerRef} className="video-controls-wrapper">
       <div
         ref={controlsRef}
         className={`video-controls-container ${
