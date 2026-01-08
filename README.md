@@ -1,41 +1,34 @@
 # YTView - YouTube Picture-in-Picture
 
-Aplicativo Electron minimalista para macOS que reproduz vídeos do YouTube em uma janela sempre no topo, sem barra de ferramentas.
+O YTView é um aplicativo para macOS que permite assistir vídeos do YouTube em uma janela flutuante que fica sempre visível sobre outras janelas. Perfeito para assistir vídeos enquanto trabalha ou usa outros aplicativos.
+
+## O que o YTView faz?
+
+O YTView cria uma janela compacta e minimalista que reproduz vídeos do YouTube. Esta janela fica sempre no topo, então você pode assistir seus vídeos enquanto usa outros aplicativos sem precisar alternar entre janelas.
 
 ## Características
 
-- 🎥 Reprodução de vídeos do YouTube
-- 📌 Janela sempre no topo (always-on-top)
-- 🎨 Interface minimalista sem barra de ferramentas
-- 🖱️ Clique no vídeo para trocar
-- ⌨️ Atalhos globais (Cmd+Shift+Y)
-- 💾 Persistência do último vídeo
+- 🎥 **Reprodução de vídeos do YouTube** - Assista qualquer vídeo do YouTube
+- 📌 **Janela sempre no topo** - A janela fica visível sobre todas as outras aplicações
+- 🎨 **Interface minimalista** - Sem distrações, apenas o vídeo
+- 🖱️ **Fácil de usar** - Clique no vídeo para trocar de vídeo
+- ⌨️ **Atalhos de teclado** - Controle rápido com atalhos globais
+- 💾 **Lembra o último vídeo** - O aplicativo lembra qual vídeo você estava assistindo
 
-## Desenvolvimento
+## Como usar
 
-```bash
-# Instalar dependências
-npm install
+1. **Abrir o aplicativo** - Ao iniciar, você verá um campo para inserir o vídeo
+2. **Inserir um vídeo** - Cole a URL completa do YouTube (ex: `https://www.youtube.com/watch?v=VIDEO_ID`) ou apenas o ID do vídeo
+3. **Confirmar** - Pressione Enter ou clique em OK
+4. **Assistir** - O vídeo será carregado e você pode assistir normalmente
+5. **Trocar de vídeo** - Clique em qualquer lugar do vídeo para abrir o campo de entrada novamente e inserir um novo vídeo
 
-# Executar em modo desenvolvimento
-npm run dev
+## Atalhos de teclado
 
-# Em outro terminal, executar Electron
-npm run electron:dev
+- **Cmd+Shift+Y**: Abrir ou focar a janela do YTView
+- **Cmd+Q**: Sair do aplicativo
+- **Cmd+W**: Fechar a janela
 
-# Build para produção
-npm run electron:build
-```
+## Requisitos
 
-## Uso
-
-1. Clique no vídeo para abrir o input
-2. Cole uma URL do YouTube ou apenas o ID do vídeo
-3. Pressione Enter ou clique em OK
-4. O vídeo será carregado automaticamente
-
-## Atalhos
-
-- `Cmd+Shift+Y`: Abrir/focar janela
-- `Cmd+Q`: Sair do aplicativo
-- `Cmd+W`: Fechar janela
+- macOS (versão compatível com Electron)
