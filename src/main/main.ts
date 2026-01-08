@@ -170,6 +170,22 @@ ipcMain.on('window-move', (_event: any, { deltaX, deltaY }: any) => {
 });
 
 // Handler para abrir URL no navegador
-ipcMain.handle('open-external-url', (_: any, url: string) => {
-  shell.openExternal(url);
+ipcMain.handle('open-external-url', async (_: any, url: string) => {
+  try {
+    console.log('Abrindo URL externa:', url);
+    await shell.openExternal(url);
+    console.log('URL aberta com sucesso');
+  } catch (error) {
+    console.error('Erro ao abrir URL:', error);
+    throw error;
+  }
+});
+
+// Handler para fechar a aplicação completamente
+ipcMain.handle('close-window', () => {
+  isQuitting = true;
+  if (mainWindow) {
+    mainWindow.destroy();
+  }
+  app.quit();
 });

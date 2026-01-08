@@ -110,21 +110,59 @@ html, body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 10;
+  z-index: 100;
   color: #fff;
   font-size: 20px;
   transition: all 0.2s;
   opacity: 0;
   -webkit-app-region: no-drag;
+  pointer-events: auto;
+}
+
+.open-youtube-button svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  color: #fff;
+}
+
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 102px;
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 100;
+  color: #fff;
+  font-size: 20px;
+  transition: all 0.2s;
+  opacity: 0;
+  -webkit-app-region: no-drag;
+  pointer-events: auto;
+}
+
+.close-button svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  color: #fff;
 }
 
 .youtube-player-container:hover .change-video-button,
-.youtube-player-container:hover .open-youtube-button {
+.youtube-player-container:hover .open-youtube-button,
+.youtube-player-container:hover .close-button {
   opacity: 1;
 }
 
 .change-video-button:hover,
-.open-youtube-button:hover {
+.open-youtube-button:hover,
+.close-button:hover {
   background: rgba(0, 0, 0, 0.9);
   transform: scale(1.1);
 }
