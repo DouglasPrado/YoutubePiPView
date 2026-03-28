@@ -49,29 +49,6 @@ app.whenReady().then(async () => {
   if (mainWindow) {
     registerShortcuts(mainWindow);
 
-    // Monitoramento de foco para reaplicar configurações PiP no macOS
-    if (process.platform === 'darwin') {
-      // Reaplicar configurações quando janela perder foco
-      mainWindow.on('blur', () => {
-        if (mainWindow && mainWindow.isVisible()) {
-          // Pequeno delay para reaplicar
-          setTimeout(() => {
-            if (mainWindow) {
-              mainWindow.setAlwaysOnTop(true, "pop-up-menu");
-              // Não focar automaticamente - deixar usuário clicar para focar
-            }
-          }, 50);
-        }
-      });
-
-      // Reaplicar quando janela for mostrada (mudança de workspace)
-      mainWindow.on('show', () => {
-        if (mainWindow) {
-          applyMacOSPiPSettings(mainWindow);
-          // Não focar automaticamente - deixar usuário clicar para focar
-        }
-      });
-    }
   }
 
   // Criar ícone na barra de menu (Tray) - macOS
@@ -127,26 +104,6 @@ app.whenReady().then(async () => {
       if (mainWindow) {
         registerShortcuts(mainWindow);
 
-        // Monitoramento de foco para reaplicar configurações PiP no macOS
-        if (process.platform === 'darwin') {
-          mainWindow.on('blur', () => {
-            if (mainWindow && mainWindow.isVisible()) {
-              setTimeout(() => {
-                if (mainWindow) {
-                  mainWindow.setAlwaysOnTop(true, "pop-up-menu");
-                  // Não focar automaticamente - deixar usuário clicar para focar
-                }
-              }, 50);
-            }
-          });
-
-          mainWindow.on('show', () => {
-            if (mainWindow) {
-              applyMacOSPiPSettings(mainWindow);
-              // Não focar automaticamente - deixar usuário clicar para focar
-            }
-          });
-        }
       }
       if (mainWindow) {
         mainWindow.on("close", (event: any) => {
@@ -184,6 +141,14 @@ ipcMain.handle('get-stored-video', (_: any) => {
 
 ipcMain.handle('save-video', (_: any, videoId: string) => {
   store.set('lastVideoId', videoId);
+});
+
+ipcMain.handle('get-stored-volume', (_: any) => {
+  return store.get('volume') ?? 100;
+});
+
+ipcMain.handle('save-volume', (_: any, volume: number) => {
+  store.set('volume', volume);
 });
 
 ipcMain.handle('get-window-size', (_: any) => {

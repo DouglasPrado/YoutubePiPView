@@ -144,11 +144,14 @@ export function YouTubePlayer({
 
       progressInterval = setInterval(() => {
         if (!state.isPaused && state.estimatedDuration > 0) {
-          const elapsed = (Date.now() - state.videoStartTime) / 1000;
-          if (elapsed <= state.estimatedDuration && elapsed >= 0) {
-            state.lastKnownTime = elapsed;
+          // Estimar tempo baseado no último tempo conhecido do YouTube + tempo decorrido
+          const now = Date.now();
+          const elapsed = (now - state.videoStartTime) / 1000;
+          const estimatedTime = Math.min(elapsed, state.estimatedDuration);
+          if (estimatedTime >= 0) {
+            // Não sobrescrever lastKnownTime - usar apenas para notificação visual
             progressCallbacks.forEach((cb) =>
-              cb(elapsed, state.estimatedDuration)
+              cb(estimatedTime, state.estimatedDuration)
             );
           }
         }
@@ -236,11 +239,67 @@ export function YouTubePlayer({
                 }),
                 "https://www.youtube.com"
               );
+              // Solicitar tempo atual e duração diretamente
+              iframe.contentWindow.postMessage(
+                JSON.stringify({
+                  event: "command",
+                  func: "getCurrentTime",
+                  args: "",
+                }),
+                "https://www.youtube.com"
+              );
+              iframe.contentWindow.postMessage(
+                JSON.stringify({
+                  event: "command",
+                  func: "getDuration",
+                  args: "",
+                }),
+                "https://www.youtube.com"
+              );
               // Também solicitar estado atual
               iframe.contentWindow.postMessage(
                 JSON.stringify({
                   event: "listening",
                   id: iframeRef.current?.id || "widget",
+                }),
+                "https://www.youtube.com"
+              );
+            }
+          },
+          setVolume: (level: number) => {
+            const iframe = iframeRef.current;
+            if (iframe?.contentWindow) {
+              iframe.contentWindow.postMessage(
+                JSON.stringify({
+                  event: "command",
+                  func: "setVolume",
+                  args: [level],
+                }),
+                "https://www.youtube.com"
+              );
+            }
+          },
+          mute: () => {
+            const iframe = iframeRef.current;
+            if (iframe?.contentWindow) {
+              iframe.contentWindow.postMessage(
+                JSON.stringify({
+                  event: "command",
+                  func: "mute",
+                  args: "",
+                }),
+                "https://www.youtube.com"
+              );
+            }
+          },
+          unMute: () => {
+            const iframe = iframeRef.current;
+            if (iframe?.contentWindow) {
+              iframe.contentWindow.postMessage(
+                JSON.stringify({
+                  event: "command",
+                  func: "unMute",
+                  args: "",
                 }),
                 "https://www.youtube.com"
               );
