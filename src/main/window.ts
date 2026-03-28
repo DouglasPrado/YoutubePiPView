@@ -57,7 +57,7 @@ export async function createWindow(): Promise<
   // Configuração de PiP - manter janela sempre no topo
   const applyPiPSettings = () => {
     if (process.platform === "darwin") {
-      win.setAlwaysOnTop(true, "screen-saver");
+      win.setAlwaysOnTop(true, "floating");
       win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
     } else {
       win.setAlwaysOnTop(true, "floating");
@@ -138,7 +138,7 @@ export function applyMacOSPiPSettings(
   win: InstanceType<typeof BrowserWindow>
 ): void {
   if (process.platform === "darwin") {
-    win.setAlwaysOnTop(true, "screen-saver");
+    win.setAlwaysOnTop(true, "floating");
     win.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
   } else {
     win.setAlwaysOnTop(true, "floating");
