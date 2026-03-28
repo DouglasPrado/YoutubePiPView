@@ -96,13 +96,17 @@ export function VideoControls({
 
   const formatTime = (seconds: number): string => {
     if (!seconds || isNaN(seconds)) return "0:00";
-    const mins = Math.floor(seconds / 60);
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
+    if (hours > 0) {
+      return `${hours}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    }
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // Se não tiver duração, usar uma estimativa padrão para permitir arrastar
-  const effectiveDuration = duration > 0 ? duration : 600; // 10 minutos padrão
+  // Usar duração real para a barra de progresso; fallback apenas para permitir arrastar
+  const effectiveDuration = duration > 0 ? duration : 600;
   const progressPercentage =
     effectiveDuration > 0 ? (currentTime / effectiveDuration) * 100 : 0;
 
