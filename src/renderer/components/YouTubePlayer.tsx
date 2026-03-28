@@ -260,6 +260,45 @@ export function YouTubePlayer({
               );
             }
           },
+          setVolume: (level: number) => {
+            const iframe = iframeRef.current;
+            if (iframe?.contentWindow) {
+              iframe.contentWindow.postMessage(
+                JSON.stringify({
+                  event: "command",
+                  func: "setVolume",
+                  args: [level],
+                }),
+                "https://www.youtube.com"
+              );
+            }
+          },
+          mute: () => {
+            const iframe = iframeRef.current;
+            if (iframe?.contentWindow) {
+              iframe.contentWindow.postMessage(
+                JSON.stringify({
+                  event: "command",
+                  func: "mute",
+                  args: "",
+                }),
+                "https://www.youtube.com"
+              );
+            }
+          },
+          unMute: () => {
+            const iframe = iframeRef.current;
+            if (iframe?.contentWindow) {
+              iframe.contentWindow.postMessage(
+                JSON.stringify({
+                  event: "command",
+                  func: "unMute",
+                  args: "",
+                }),
+                "https://www.youtube.com"
+              );
+            }
+          },
           getIframe: () => iframeRef.current,
           getCurrentTime: () => {
             // Retornar o tempo atual estimado

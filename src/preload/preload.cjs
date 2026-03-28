@@ -11,7 +11,9 @@ try {
     },
     openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url),
     minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
-    closeWindow: () => ipcRenderer.invoke('close-window')
+    closeWindow: () => ipcRenderer.invoke('close-window'),
+    getStoredVolume: () => ipcRenderer.invoke('get-stored-volume'),
+    saveVolume: (volume) => ipcRenderer.invoke('save-volume', volume)
   });
 } catch (error) {
   console.error('[PRELOAD] Error exposing electronAPI:', error);
