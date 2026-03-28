@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, Tray, nativeImage, shell } from 'electron';
-import { createWindow, applyMacOSPiPSettings } from './window';
+import { createWindow } from './window';
 import { registerShortcuts, unregisterShortcuts } from './shortcuts';
 import { stopServer } from './server';
 import Store from 'electron-store';
@@ -16,29 +16,6 @@ app.whenReady().then(async () => {
   if (mainWindow) {
     registerShortcuts(mainWindow);
 
-    // Monitoramento de foco para reaplicar configurações PiP no macOS
-    if (process.platform === 'darwin') {
-      // Reaplicar configurações quando janela perder foco
-      mainWindow.on('blur', () => {
-        if (mainWindow && mainWindow.isVisible()) {
-          // Pequeno delay para reaplicar
-          setTimeout(() => {
-            if (mainWindow) {
-              mainWindow.setAlwaysOnTop(true, "pop-up-menu");
-              // Não focar automaticamente - deixar usuário clicar para focar
-            }
-          }, 50);
-        }
-      });
-
-      // Reaplicar quando janela for mostrada (mudança de workspace)
-      mainWindow.on('show', () => {
-        if (mainWindow) {
-          applyMacOSPiPSettings(mainWindow);
-          // Não focar automaticamente - deixar usuário clicar para focar
-        }
-      });
-    }
   }
 
   // Criar ícone na barra de menu (Tray) - macOS
@@ -94,26 +71,6 @@ app.whenReady().then(async () => {
       if (mainWindow) {
         registerShortcuts(mainWindow);
 
-        // Monitoramento de foco para reaplicar configurações PiP no macOS
-        if (process.platform === 'darwin') {
-          mainWindow.on('blur', () => {
-            if (mainWindow && mainWindow.isVisible()) {
-              setTimeout(() => {
-                if (mainWindow) {
-                  mainWindow.setAlwaysOnTop(true, "pop-up-menu");
-                  // Não focar automaticamente - deixar usuário clicar para focar
-                }
-              }, 50);
-            }
-          });
-
-          mainWindow.on('show', () => {
-            if (mainWindow) {
-              applyMacOSPiPSettings(mainWindow);
-              // Não focar automaticamente - deixar usuário clicar para focar
-            }
-          });
-        }
       }
       if (mainWindow) {
         mainWindow.on("close", (event: any) => {
