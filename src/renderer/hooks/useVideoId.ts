@@ -1,3 +1,16 @@
+// Verifica se o texto parece ser uma URL (não do YouTube)
+export function isNonYouTubeUrl(input: string): boolean {
+  const trimmed = input.trim();
+  // Verifica se parece uma URL genérica
+  const urlPattern = /^(https?:\/\/|www\.)/i;
+  if (!urlPattern.test(trimmed)) {
+    return false;
+  }
+  // Se for URL, verifica se NÃO é do YouTube
+  const youtubePattern = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be|m\.youtube\.com)/i;
+  return !youtubePattern.test(trimmed);
+}
+
 export function useVideoId(): (input: string) => string | null {
   return (input: string): string | null => {
     if (!input || input.trim() === '') {

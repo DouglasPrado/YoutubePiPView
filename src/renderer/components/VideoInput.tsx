@@ -1,5 +1,5 @@
 import { KeyboardEvent, useEffect, useRef, useState } from "react";
-import { useVideoId } from "../hooks/useVideoId";
+import { useVideoId, isNonYouTubeUrl } from "../hooks/useVideoId";
 
 interface VideoInputProps {
   isVisible: boolean;
@@ -26,12 +26,16 @@ export function VideoInput({
       setInputValue("");
       setError(null);
 
-      // Tentar colar automaticamente da área de transferência
+      // Tentar colar automaticamente da área de transferência (apenas URLs do YouTube)
       const pasteFromClipboard = async () => {
         try {
           const text = await navigator.clipboard.readText();
           if (text && text.trim()) {
-            setInputValue(text);
+            if (isNonYouTubeUrl(text)) {
+              setError("Apenas URLs do YouTube são permitidas");
+            } else {
+              setInputValue(text);
+            }
           }
         } catch (err) {
           // Ignorar erro se não tiver permissão de clipboard
@@ -85,9 +89,10 @@ export function VideoInput({
     console.log("VideoId extraído:", videoId);
 
     if (!videoId) {
-      setError(
-        "URL ou ID do vídeo inválido. Use um link do YouTube ou um ID de 11 caracteres."
-      );
+      const errorMsg = isNonYouTubeUrl(trimmedValue)
+        ? "Apenas URLs do YouTube são permitidas"
+        : "URL ou ID do vídeo inválido. Use um link do YouTube ou um ID de 11 caracteres.";
+      setError(errorMsg);
       inputRef.current?.focus();
       return;
     }
@@ -110,8 +115,13 @@ export function VideoInput({
     }
   };
 
-  const handlePaste = () => {
-    // Limpar erro quando colar
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pastedText = e.clipboardData.getData("text");
+    if (isNonYouTubeUrl(pastedText)) {
+      e.preventDefault();
+      setError("Apenas URLs do YouTube são permitidas");
+      return;
+    }
     setError(null);
   };
 
