@@ -5,7 +5,7 @@ import { stopServer } from './server';
 import Store from 'electron-store';
 import * as path from 'path';
 
-const store = new Store<{ lastVideoId?: string; windowSize?: { width: number; height: number } }>();
+const store = new Store<{ lastVideoId?: string; windowSize?: { width: number; height: number }; volume?: number }>();
 
 let mainWindow: InstanceType<typeof BrowserWindow> | null = null;
 let tray: InstanceType<typeof Tray> | null = null;
@@ -151,6 +151,14 @@ ipcMain.handle('get-stored-video', (_: any) => {
 
 ipcMain.handle('save-video', (_: any, videoId: string) => {
   store.set('lastVideoId', videoId);
+});
+
+ipcMain.handle('get-stored-volume', (_: any) => {
+  return store.get('volume') ?? 100;
+});
+
+ipcMain.handle('save-volume', (_: any, volume: number) => {
+  store.set('volume', volume);
 });
 
 ipcMain.handle('get-window-size', (_: any) => {

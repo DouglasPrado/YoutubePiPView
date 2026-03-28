@@ -11,7 +11,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
   minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
-  closeWindow: () => ipcRenderer.invoke('close-window')
+  closeWindow: () => ipcRenderer.invoke('close-window'),
+  getStoredVolume: () => ipcRenderer.invoke('get-stored-volume'),
+  saveVolume: (volume: number) => ipcRenderer.invoke('save-volume', volume)
 });
 
 declare global {
@@ -25,6 +27,8 @@ declare global {
       openExternalUrl: (url: string) => Promise<void>;
       minimizeWindow: () => Promise<void>;
       closeWindow: () => Promise<void>;
+      getStoredVolume: () => Promise<number>;
+      saveVolume: (volume: number) => Promise<void>;
     };
   }
 }

@@ -563,6 +563,82 @@ body {
   border-radius: 2px;
 }
 
+.volume-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 4px;
+}
+
+.volume-button {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+}
+
+.volume-button svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  color: #fff;
+}
+
+.volume-slider {
+  width: 60px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  -webkit-app-region: no-drag;
+}
+
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  margin-top: -4px;
+}
+
+.volume-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  background: #fff;
+  border-radius: 50%;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.volume-slider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+}
+
+.volume-slider::-webkit-slider-runnable-track {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.volume-slider::-moz-range-track {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
 .video-controls-floating {
   display: flex;
   justify-content: center;

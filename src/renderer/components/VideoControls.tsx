@@ -1,15 +1,20 @@
+import { Volume2, Volume1, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 interface VideoControlsProps {
   player: any;
   videoId: string | null;
   showControls?: boolean;
+  volume?: number;
+  onVolumeChange?: (volume: number) => void;
 }
 
 export function VideoControls({
   player,
   videoId,
   showControls = false,
+  volume = 100,
+  onVolumeChange,
 }: VideoControlsProps) {
   const controlsRef = useRef<HTMLDivElement>(null);
   const progressRef = useRef<HTMLInputElement>(null);
@@ -21,6 +26,8 @@ export function VideoControls({
   const [duration, setDuration] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const previousVolumeRef = useRef(volume);
 
   if (!videoId) {
     return null;
@@ -167,6 +174,35 @@ export function VideoControls({
     setIsSeeking(false);
   };
 
+  const handleMuteToggle = () => {
+    if (isMuted) {
+      // Unmute: restaurar volume anterior
+      setIsMuted(false);
+      if (player?.unMute) player.unMute();
+      if (onVolumeChange) onVolumeChange(previousVolumeRef.current || 100);
+    } else {
+      // Mute: salvar volume atual e mutar
+      previousVolumeRef.current = volume;
+      setIsMuted(true);
+      if (player?.mute) player.mute();
+      if (onVolumeChange) onVolumeChange(0);
+    }
+  };
+
+  const handleVolumeSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseInt(e.target.value, 10);
+    if (newVolume === 0) {
+      setIsMuted(true);
+    } else {
+      setIsMuted(false);
+      previousVolumeRef.current = newVolume;
+      if (player?.unMute) player.unMute();
+    }
+    if (onVolumeChange) onVolumeChange(newVolume);
+  };
+
+  const VolumeIcon = isMuted || volume === 0 ? VolumeX : volume <= 50 ? Volume1 : Volume2;
+
   // Usar o estado compartilhado de visibilidade
   useEffect(() => {
     setIsVisible(showControls);
@@ -205,6 +241,25 @@ export function VideoControls({
             title="Arraste para buscar no vídeo"
           />
           <span className="video-time">{formatTime(effectiveDuration)}</span>
+          <div className="volume-control">
+            <button
+              className="control-button-small volume-button"
+              onClick={handleMuteToggle}
+              title={isMuted ? "Ativar som" : "Mutar"}
+            >
+              <VolumeIcon size={14} />
+            </button>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value={isMuted ? 0 : volume}
+              onChange={handleVolumeSliderChange}
+              className="volume-slider"
+              title="Volume"
+            />
+          </div>
         </div>
       </div>
     </div>
