@@ -1,4 +1,4 @@
-import { ExternalLink, Minus, X } from "lucide-react";
+import { ExternalLink, ListOrdered, Minus, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 interface YouTubePlayerProps {
@@ -77,6 +77,12 @@ export function YouTubePlayer({
           } else if (data.info === 2) {
             // Paused
             state.isPaused = true;
+          } else if (data.info === 0) {
+            // Ended
+            state.isPaused = true;
+            if (window.electronAPI?.notifyVideoEnded) {
+              window.electronAPI.notifyVideoEnded();
+            }
           }
         }
 
@@ -304,6 +310,19 @@ export function YouTubePlayer({
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         title="YouTube video player"
       />
+      <div
+        className="queue-button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (window.electronAPI?.openQueueWindow) {
+            window.electronAPI.openQueueWindow();
+          }
+        }}
+        title="Playlist"
+      >
+        <ListOrdered size={18} />
+      </div>
       <div
         className="change-video-button"
         onClick={(e) => {

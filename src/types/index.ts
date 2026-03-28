@@ -13,3 +13,14 @@ export interface StoredData {
   windowSize?: WindowSize;
   windowPosition?: WindowPosition;
 }
+
+export interface QueueItem {
+  id: string;
+  videoId: string;
+  url: string;
+}
+
+export interface QueueState {
+  items: QueueItem[];
+  currentIndex: number;
+}

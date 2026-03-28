@@ -43,6 +43,16 @@ export function App() {
     loadStoredVideo();
   }, []);
 
+  // Listen for play-video commands from main process (queue auto-play)
+  useEffect(() => {
+    if (!window.electronAPI?.onPlayVideo) return;
+    const cleanup = window.electronAPI.onPlayVideo((newVideoId: string) => {
+      handleVideoSubmit(newVideoId);
+    });
+    return cleanup;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handlePlayerClick = () => {
     setShowInput(true);
     setAppState("edit");

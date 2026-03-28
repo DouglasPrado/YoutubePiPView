@@ -133,6 +133,43 @@ export async function createWindow(): Promise<
   return win;
 }
 
+// Criar janela da fila de reprodução (playlist queue)
+export async function createQueueWindow(): Promise<
+  InstanceType<typeof BrowserWindow>
+> {
+  const preloadPath = path.resolve(__dirname, "../preload/preload.cjs");
+
+  const win = new BrowserWindow({
+    width: 420,
+    height: 600,
+    frame: true,
+    transparent: false,
+    resizable: true,
+    movable: true,
+    fullscreenable: false,
+    skipTaskbar: false,
+    alwaysOnTop: false,
+    backgroundColor: "#1e1e1e",
+    title: "Playlist",
+    webPreferences: {
+      preload: preloadPath,
+      nodeIntegration: false,
+      contextIsolation: true,
+      webSecurity: true,
+    },
+  });
+
+  const serverUrl = getServerUrl();
+  if (serverUrl) {
+    await win.loadURL(`${serverUrl}#/queue`);
+  } else {
+    const indexPath = path.join(__dirname, "../../dist/index.html");
+    await win.loadFile(indexPath, { hash: "/queue" });
+  }
+
+  return win;
+}
+
 // Função para aplicar configurações de PiP no macOS
 export function applyMacOSPiPSettings(
   win: InstanceType<typeof BrowserWindow>
