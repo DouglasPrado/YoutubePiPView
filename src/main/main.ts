@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, Tray, nativeImage, shell } from 'electron';
-import { createWindow, createQueueWindow, applyMacOSPiPSettings } from './window';
+import { createWindow, createQueueWindow } from './window';
 import { registerShortcuts, unregisterShortcuts } from './shortcuts';
 import { stopServer } from './server';
 import Store from 'electron-store';
