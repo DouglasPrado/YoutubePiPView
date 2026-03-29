@@ -1,68 +1,88 @@
 # YTView - YouTube Picture-in-Picture
 
-O YTView é um aplicativo para macOS que permite assistir vídeos do YouTube em uma janela flutuante que fica sempre visível sobre outras janelas. Perfeito para assistir vídeos enquanto trabalha ou usa outros aplicativos.
+YTView is a macOS app that lets you watch YouTube videos in a floating window that stays always on top. Perfect for watching videos while working or using other apps — **completely ad-free**.
 
-## O que o YTView faz?
+## What does YTView do?
 
-O YTView cria uma janela compacta e minimalista que reproduz vídeos do YouTube. Esta janela fica sempre no topo, então você pode assistir seus vídeos enquanto usa outros aplicativos sem precisar alternar entre janelas.
+YTView creates a compact, minimalist window that plays YouTube videos without ads or distractions. The window stays on top of all other applications, so you can watch your videos without switching between windows.
 
-## Características
+## Features
 
-- 🎥 **Reprodução de vídeos do YouTube** - Assista qualquer vídeo do YouTube
-- 📌 **Janela sempre no topo** - A janela fica visível sobre todas as outras aplicações
-- 🎨 **Interface minimalista** - Sem distrações, apenas o vídeo
-- 🖱️ **Fácil de usar** - Clique no vídeo para trocar de vídeo
-- ⌨️ **Atalhos de teclado** - Controle rápido com atalhos globais
-- 💾 **Lembra o último vídeo** - O aplicativo lembra qual vídeo você estava assistindo
+- **Ad-free playback** - Watch YouTube videos without any ads
+- **Always on top** - The window stays visible over all other applications
+- **Minimalist interface** - No distractions, just the video
+- **Video queue** - Add multiple videos to a queue and watch them in sequence
+- **Chrome extension** - Quickly send videos from your browser to YTView
+- **Keyboard shortcuts** - Fast control with global shortcuts
+- **Remembers last video** - The app remembers which video you were watching
 
-## Como usar
+## Chrome Extension
 
-1. **Abrir o aplicativo** - Ao iniciar, você verá um campo para inserir o vídeo
-2. **Inserir um vídeo** - Cole a URL completa do YouTube (ex: `https://www.youtube.com/watch?v=VIDEO_ID`) ou apenas o ID do vídeo
-3. **Confirmar** - Pressione Enter ou clique em OK
-4. **Assistir** - O vídeo será carregado e você pode assistir normalmente
-5. **Trocar de vídeo** - Clique em qualquer lugar do vídeo para abrir o campo de entrada novamente e inserir um novo vídeo
+The Chrome extension lets you interact with YTView directly from your browser:
 
-## Atalhos de teclado
+- **Open in PIP** - Click the extension icon on any YouTube video to open it in YTView's floating window
+- **Add to queue** - Hover over any video thumbnail on YouTube and click the "+" button to add it to the queue
+- **Add playlists** - On playlist pages, click "Add all to YTView" to send the entire playlist to your queue
 
-- **Cmd+Shift+Y**: Abrir ou focar a janela do YTView
-- **Cmd+Q**: Sair do aplicativo
-- **Cmd+W**: Fechar a janela
+The extension communicates with the desktop app via a local API on port `8765`.
 
-## Requisitos
+## Video Queue
 
-- macOS (versão compatível com Electron)
-- Node.js (versão 18 ou superior)
+YTView includes a built-in video queue so you can line up multiple videos:
+
+- Add videos by URL or paste multiple links at once
+- Play all queued videos in sequence
+- Remove individual items or clear the entire queue
+- Queue is persisted between sessions
+
+## How to Use
+
+1. **Open the app** - On launch, you'll see a field to enter the video
+2. **Enter a video** - Paste the full YouTube URL (e.g., `https://www.youtube.com/watch?v=VIDEO_ID`) or just the video ID
+3. **Confirm** - Press Enter or click OK
+4. **Watch** - The video loads ad-free and you can watch normally
+5. **Switch video** - Click anywhere on the video to open the input field again
+
+## Keyboard Shortcuts
+
+- **Cmd+Shift+Y**: Open or focus the YTView window
+- **Cmd+Q**: Quit the app
+- **Cmd+W**: Close the window
+
+## Requirements
+
+- macOS (Electron-compatible version)
+- Node.js (version 18 or higher)
 - npm
 
-## Baixar
+## Download
 
-Acesse a página de [Releases](../../releases) do projeto e baixe o arquivo `.dmg` mais recente para macOS. Abra o `.dmg` e arraste o YTView para a pasta **Aplicativos**.
+Go to the [Releases](../../releases) page and download the latest `.dmg` file for macOS. Open the `.dmg` and drag YTView to your **Applications** folder.
 
-> **Nota:** Como o app não é assinado pela Apple, no primeiro uso o macOS pode bloquear a abertura. Vá em **Ajustes do Sistema > Privacidade e Segurança** e clique em "Abrir mesmo assim".
+> **Note:** Since the app is not signed by Apple, macOS may block it on first launch. Go to **System Settings > Privacy & Security** and click "Open Anyway".
 
-## Desenvolvimento
+## Development
 
-Este projeto usa um monorepo com [pnpm workspaces](https://pnpm.io/workspaces) e [Turborepo](https://turbo.build/).
+This project uses a monorepo with [pnpm workspaces](https://pnpm.io/workspaces) and [Turborepo](https://turbo.build/).
 
-### Instalar dependências
+### Install dependencies
 
 ```bash
 pnpm install
 ```
 
-### Rodar em modo de desenvolvimento
+### Run in development mode
 
 ```bash
 pnpm turbo run build
 cd apps/desktop && npm run electron:dev
 ```
 
-### Buildar o aplicativo (.app / .dmg)
+### Build the app (.app / .dmg)
 
 ```bash
 pnpm turbo run build
 cd apps/desktop && npm run electron:build
 ```
 
-O `.dmg` será gerado em `apps/desktop/dist/`.
+The `.dmg` will be generated in `apps/desktop/dist/`.
