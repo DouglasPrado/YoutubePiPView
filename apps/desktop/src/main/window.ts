@@ -40,7 +40,7 @@ export async function createWindow(): Promise<
     transparent: true, // Habilitar transparência para permitir setOpacity
     resizable: true,
     movable: true,
-    fullscreenable: false,
+    fullscreenable: true,
     skipTaskbar: true,
     alwaysOnTop: true,
     type: "panel", // NSPanel no macOS - melhor comportamento para PiP

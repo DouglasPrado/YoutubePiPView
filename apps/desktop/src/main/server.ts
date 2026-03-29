@@ -25,43 +25,6 @@ const MIME_TYPES: Record<string, string> = {
   '.eot': 'application/vnd.ms-fontobject',
 };
 
-/**
- * Verifica se uma porta está disponível
- */
-function isPortAvailable(port: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const testServer = http.createServer();
-
-    testServer.once('error', () => {
-      resolve(false);
-    });
-
-    testServer.once('listening', () => {
-      testServer.close();
-      resolve(true);
-    });
-
-    testServer.listen(port, 'localhost');
-  });
-}
-
-/**
- * Encontra uma porta disponível começando pela porta padrão
- */
-async function findAvailablePort(startPort: number = DEFAULT_PORT): Promise<number> {
-  let port = startPort;
-  const maxAttempts = 10;
-
-  for (let i = 0; i < maxAttempts; i++) {
-    const available = await isPortAvailable(port);
-    if (available) {
-      return port;
-    }
-    port++;
-  }
-
-  throw new Error(`Não foi possível encontrar uma porta disponível entre ${startPort} e ${port - 1}`);
-}
 
 /**
  * Inicia o servidor HTTP local
@@ -77,8 +40,8 @@ export async function startServer(distPath: string): Promise<void> {
     throw new Error(`Diretório dist não encontrado: ${distPath}`);
   }
 
-  // Encontrar porta disponível
-  const port = await findAvailablePort();
+  // Porta fixa para comunicação com a extensão Chrome
+  const port = DEFAULT_PORT;
 
   server = http.createServer((req, res) => {
     const urlPath = req.url?.split('?')[0] || '/';

@@ -12,6 +12,7 @@ try {
       ipcRenderer.send('window-move', { deltaX, deltaY });
     },
     openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url),
+    toggleFullscreen: () => ipcRenderer.invoke('toggle-fullscreen'),
     minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
     closeWindow: () => ipcRenderer.invoke('close-window'),
     // Queue/Playlist

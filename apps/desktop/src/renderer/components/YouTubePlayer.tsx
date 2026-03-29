@@ -1,5 +1,5 @@
-import { ExternalLink, ListOrdered, Minus, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { ExternalLink, ListOrdered, Maximize, Minimize2, Minus, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface YouTubePlayerProps {
   videoId: string | null;
@@ -16,6 +16,7 @@ export function YouTubePlayer({
   onPlayerReady,
   showControls = false,
 }: YouTubePlayerProps) {
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerRef = useRef<any>(null);
@@ -425,6 +426,24 @@ export function YouTubePlayer({
         title="Abrir no YouTube"
       >
         <ExternalLink size={18} />
+      </div>
+      <div
+        className="fullscreen-button"
+        onClick={async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (window.electronAPI?.toggleFullscreen) {
+            try {
+              const nowFullscreen = await window.electronAPI.toggleFullscreen();
+              setIsFullscreen(nowFullscreen);
+            } catch (error) {
+              console.error("Erro ao toggle fullscreen:", error);
+            }
+          }
+        }}
+        title={isFullscreen ? "Sair do fullscreen" : "Fullscreen"}
+      >
+        {isFullscreen ? <Minimize2 size={18} /> : <Maximize size={18} />}
       </div>
       <div
         className="minimize-button"

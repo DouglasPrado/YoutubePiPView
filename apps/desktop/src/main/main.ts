@@ -208,6 +208,34 @@ ipcMain.handle('open-external-url', async (_: any, url: string) => {
   }
 });
 
+// Handler para toggle fullscreen
+ipcMain.handle('toggle-fullscreen', () => {
+  if (mainWindow) {
+    const isFullScreen = mainWindow.isFullScreen();
+    if (!isFullScreen) {
+      // Entrar em fullscreen
+      mainWindow.setAlwaysOnTop(false);
+      mainWindow.setFullScreen(true);
+    } else {
+      // Sair de fullscreen e restaurar PiP
+      mainWindow.setFullScreen(false);
+      setTimeout(() => {
+        if (mainWindow && !mainWindow.isDestroyed()) {
+          if (process.platform === 'darwin') {
+            mainWindow.setAlwaysOnTop(true, 'floating');
+            mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+          } else {
+            mainWindow.setAlwaysOnTop(true, 'floating');
+            mainWindow.setVisibleOnAllWorkspaces(true);
+          }
+        }
+      }, 300);
+    }
+    return !isFullScreen;
+  }
+  return false;
+});
+
 // Handler para minimizar a janela (pausar vídeo e tornar transparente)
 ipcMain.handle('minimize-window', () => {
   if (mainWindow) {

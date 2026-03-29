@@ -101,7 +101,7 @@ body {
 .queue-button {
   position: absolute;
   top: 10px;
-  right: 194px;
+  right: 240px;
   width: 36px;
   height: 36px;
   background: rgba(0, 0, 0, 0.7);
@@ -129,7 +129,7 @@ body {
 .change-video-button {
   position: absolute;
   top: 10px;
-  right: 148px;
+  right: 194px;
   width: 36px;
   height: 36px;
   background: rgba(0, 0, 0, 0.7);
@@ -150,7 +150,7 @@ body {
 .open-youtube-button {
   position: absolute;
   top: 10px;
-  right: 102px;
+  right: 148px;
   width: 36px;
   height: 36px;
   background: rgba(0, 0, 0, 0.7);
@@ -169,6 +169,34 @@ body {
 }
 
 .open-youtube-button svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+  color: #fff;
+}
+
+.fullscreen-button {
+  position: absolute;
+  top: 10px;
+  right: 102px;
+  width: 36px;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10000;
+  color: #fff;
+  font-size: 20px;
+  transition: all 0.2s;
+  opacity: 0;
+  -webkit-app-region: no-drag;
+  pointer-events: auto;
+}
+
+.fullscreen-button svg {
   width: 18px;
   height: 18px;
   stroke: currentColor;
@@ -234,11 +262,13 @@ body {
 .youtube-player-container:hover .queue-button,
 .youtube-player-container:hover .change-video-button,
 .youtube-player-container:hover .open-youtube-button,
+.youtube-player-container:hover .fullscreen-button,
 .youtube-player-container:hover .minimize-button,
 .youtube-player-container:hover .close-button,
 .youtube-player-container.show-controls .queue-button,
 .youtube-player-container.show-controls .change-video-button,
 .youtube-player-container.show-controls .open-youtube-button,
+.youtube-player-container.show-controls .fullscreen-button,
 .youtube-player-container.show-controls .minimize-button,
 .youtube-player-container.show-controls .close-button {
   opacity: 1;
@@ -247,6 +277,7 @@ body {
 .queue-button:hover,
 .change-video-button:hover,
 .open-youtube-button:hover,
+.fullscreen-button:hover,
 .minimize-button:hover,
 .close-button:hover {
   background: rgba(0, 0, 0, 0.9);

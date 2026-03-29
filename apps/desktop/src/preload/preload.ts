@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getStoredVolume: () => ipcRenderer.invoke('get-stored-volume'),
   saveVolume: (volume: number) => ipcRenderer.invoke('save-volume', volume),
   openExternalUrl: (url: string) => ipcRenderer.invoke('open-external-url', url),
+  toggleFullscreen: () => ipcRenderer.invoke('toggle-fullscreen'),
   minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
   closeWindow: () => ipcRenderer.invoke('close-window'),
   // Queue/Playlist
@@ -46,6 +47,7 @@ declare global {
       getStoredVolume: () => Promise<number>;
       saveVolume: (volume: number) => Promise<void>;
       openExternalUrl: (url: string) => Promise<void>;
+      toggleFullscreen: () => Promise<boolean>;
       minimizeWindow: () => Promise<void>;
       closeWindow: () => Promise<void>;
       // Queue/Playlist
