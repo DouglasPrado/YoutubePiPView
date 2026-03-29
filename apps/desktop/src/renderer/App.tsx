@@ -12,6 +12,7 @@ export function App() {
   const [appState, setAppState] = useState<AppState>("idle");
   const [player, setPlayer] = useState<any>(null);
   const [showControls, setShowControls] = useState(false);
+  const [volume, setVolume] = useState(100);
 
   useEffect(() => {
     // Carregar último vídeo salvo ao iniciar
@@ -22,6 +23,10 @@ export function App() {
           setShowInput(true);
           setAppState("edit");
           return;
+        }
+        const storedVolume = await window.electronAPI.getStoredVolume();
+        if (storedVolume !== null && storedVolume !== undefined) {
+          setVolume(storedVolume);
         }
         const storedVideoId = await window.electronAPI.getStoredVideo();
         if (storedVideoId) {
@@ -41,6 +46,16 @@ export function App() {
     };
 
     loadStoredVideo();
+  }, []);
+
+  // Listen for play-video commands from main process (queue auto-play)
+  useEffect(() => {
+    if (!window.electronAPI?.onPlayVideo) return;
+    const cleanup = window.electronAPI.onPlayVideo((newVideoId: string) => {
+      handleVideoSubmit(newVideoId);
+    });
+    return cleanup;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handlePlayerClick = () => {
@@ -97,8 +112,21 @@ export function App() {
 
   const isLoading = appState === "loading";
 
+  const handleVolumeChange = (newVolume: number) => {
+    setVolume(newVolume);
+    if (player?.setVolume) {
+      player.setVolume(newVolume);
+    }
+    if (window.electronAPI) {
+      window.electronAPI.saveVolume(newVolume);
+    }
+  };
+
   const handlePlayerReady = (playerInstance: any) => {
     setPlayer(playerInstance);
+    if (playerInstance?.setVolume) {
+      playerInstance.setVolume(volume);
+    }
   };
 
   // Controlar visibilidade dos controles com hover na janela toda
@@ -155,6 +183,8 @@ export function App() {
           player={player}
           videoId={videoId}
           showControls={showControls}
+          volume={volume}
+          onVolumeChange={handleVolumeChange}
         />
       )}
       <VideoInput

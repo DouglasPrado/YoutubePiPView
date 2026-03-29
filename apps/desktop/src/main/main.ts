@@ -1,58 +1,74 @@
 import { app, BrowserWindow, ipcMain, Tray, nativeImage, shell } from 'electron';
-import { createWindow, applyMacOSPiPSettings } from './window';
+import { createWindow, createQueueWindow } from './window';
 import { registerShortcuts, unregisterShortcuts } from './shortcuts';
 import { stopServer } from './server';
 import Store from 'electron-store';
 import * as path from 'path';
 
-const store = new Store<{ lastVideoId?: string; windowSize?: { width: number; height: number } }>();
+interface QueueItem {
+  id: string;
+  videoId: string;
+  url: string;
+}
+
+interface QueueState {
+  items: QueueItem[];
+  currentIndex: number;
+}
+
+const store = new Store<{
+  lastVideoId?: string;
+  windowSize?: { width: number; height: number };
+  queue?: QueueState;
+}>();
 
 let mainWindow: InstanceType<typeof BrowserWindow> | null = null;
+let queueWindow: InstanceType<typeof BrowserWindow> | null = null;
 let tray: InstanceType<typeof Tray> | null = null;
 let isQuitting = false;
+
+function getQueue(): QueueState {
+  return store.get('queue') || { items: [], currentIndex: -1 };
+}
+
+function saveQueue(state: QueueState): void {
+  store.set('queue', state);
+}
+
+function broadcastQueueUpdate(state: QueueState): void {
+  if (queueWindow && !queueWindow.isDestroyed()) {
+    queueWindow.webContents.send('queue-updated', state);
+  }
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('queue-updated', state);
+  }
+}
 
 app.whenReady().then(async () => {
   mainWindow = await createWindow();
   if (mainWindow) {
     registerShortcuts(mainWindow);
 
-    // Monitoramento de foco para reaplicar configurações PiP no macOS
-    if (process.platform === 'darwin') {
-      // Reaplicar configurações quando janela perder foco
-      mainWindow.on('blur', () => {
-        if (mainWindow && mainWindow.isVisible()) {
-          // Pequeno delay para reaplicar
-          setTimeout(() => {
-            if (mainWindow) {
-              mainWindow.setAlwaysOnTop(true, "pop-up-menu");
-              // Não focar automaticamente - deixar usuário clicar para focar
-            }
-          }, 50);
-        }
-      });
-
-      // Reaplicar quando janela for mostrada (mudança de workspace)
-      mainWindow.on('show', () => {
-        if (mainWindow) {
-          applyMacOSPiPSettings(mainWindow);
-          // Não focar automaticamente - deixar usuário clicar para focar
-        }
-      });
-    }
   }
 
   // Criar ícone na barra de menu (Tray) - macOS
   if (process.platform === 'darwin') {
     try {
-      // Criar um ícone simples (pode ser substituído por um arquivo de imagem)
-      const iconPath = path.join(__dirname, '../../assets/tray-icon.png');
+      // Template icon para macOS (adapta automaticamente ao tema claro/escuro)
+      const iconPath = path.join(__dirname, '../../assets/tray-iconTemplate.png');
       let trayImage;
 
       try {
         trayImage = nativeImage.createFromPath(iconPath);
+        trayImage.setTemplateImage(true);
       } catch (e) {
-        // Se não houver ícone, criar um ícone simples
-        trayImage = nativeImage.createEmpty();
+        // Fallback para ícone regular
+        const fallbackPath = path.join(__dirname, '../../assets/tray-icon.png');
+        try {
+          trayImage = nativeImage.createFromPath(fallbackPath);
+        } catch (e2) {
+          trayImage = nativeImage.createEmpty();
+        }
       }
 
       tray = new Tray(trayImage || nativeImage.createEmpty());
@@ -94,26 +110,6 @@ app.whenReady().then(async () => {
       if (mainWindow) {
         registerShortcuts(mainWindow);
 
-        // Monitoramento de foco para reaplicar configurações PiP no macOS
-        if (process.platform === 'darwin') {
-          mainWindow.on('blur', () => {
-            if (mainWindow && mainWindow.isVisible()) {
-              setTimeout(() => {
-                if (mainWindow) {
-                  mainWindow.setAlwaysOnTop(true, "pop-up-menu");
-                  // Não focar automaticamente - deixar usuário clicar para focar
-                }
-              }, 50);
-            }
-          });
-
-          mainWindow.on('show', () => {
-            if (mainWindow) {
-              applyMacOSPiPSettings(mainWindow);
-              // Não focar automaticamente - deixar usuário clicar para focar
-            }
-          });
-        }
       }
       if (mainWindow) {
         mainWindow.on("close", (event: any) => {
@@ -151,6 +147,14 @@ ipcMain.handle('get-stored-video', (_: any) => {
 
 ipcMain.handle('save-video', (_: any, videoId: string) => {
   store.set('lastVideoId', videoId);
+});
+
+ipcMain.handle('get-stored-volume', (_: any) => {
+  return store.get('volume') ?? 100;
+});
+
+ipcMain.handle('save-volume', (_: any, volume: number) => {
+  store.set('volume', volume);
 });
 
 ipcMain.handle('get-window-size', (_: any) => {
@@ -197,4 +201,92 @@ ipcMain.handle('close-window', () => {
     mainWindow.destroy();
   }
   app.quit();
+});
+
+// ===== Queue/Playlist IPC Handlers =====
+
+ipcMain.handle('open-queue-window', async () => {
+  if (queueWindow && !queueWindow.isDestroyed()) {
+    queueWindow.focus();
+    return;
+  }
+  queueWindow = await createQueueWindow();
+  queueWindow.on('closed', () => {
+    queueWindow = null;
+  });
+});
+
+ipcMain.handle('get-queue', () => {
+  return getQueue();
+});
+
+ipcMain.handle('set-queue', (_: any, items: QueueItem[]) => {
+  const queue = getQueue();
+  queue.items = items;
+  saveQueue(queue);
+  broadcastQueueUpdate(queue);
+});
+
+ipcMain.handle('remove-from-queue', (_: any, id: string) => {
+  const queue = getQueue();
+  const removedIndex = queue.items.findIndex(item => item.id === id);
+  if (removedIndex === -1) return;
+
+  queue.items = queue.items.filter(item => item.id !== id);
+
+  // Adjust currentIndex
+  if (queue.currentIndex >= 0) {
+    if (removedIndex < queue.currentIndex) {
+      queue.currentIndex--;
+    } else if (removedIndex === queue.currentIndex) {
+      queue.currentIndex = -1;
+    }
+  }
+
+  saveQueue(queue);
+  broadcastQueueUpdate(queue);
+});
+
+ipcMain.handle('clear-queue', () => {
+  const queue: QueueState = { items: [], currentIndex: -1 };
+  saveQueue(queue);
+  broadcastQueueUpdate(queue);
+});
+
+ipcMain.handle('play-from-queue', (_: any, index: number) => {
+  const queue = getQueue();
+  if (index < 0 || index >= queue.items.length) return;
+
+  queue.currentIndex = index;
+  saveQueue(queue);
+
+  const videoId = queue.items[index].videoId;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('play-video', videoId);
+  }
+
+  broadcastQueueUpdate(queue);
+});
+
+ipcMain.handle('video-ended', () => {
+  const queue = getQueue();
+  if (queue.currentIndex < 0) return;
+
+  const nextIndex = queue.currentIndex + 1;
+  if (nextIndex < queue.items.length) {
+    queue.currentIndex = nextIndex;
+    saveQueue(queue);
+
+    const videoId = queue.items[nextIndex].videoId;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('play-video', videoId);
+    }
+
+    broadcastQueueUpdate(queue);
+  } else {
+    // End of queue
+    queue.currentIndex = -1;
+    saveQueue(queue);
+    broadcastQueueUpdate(queue);
+  }
 });

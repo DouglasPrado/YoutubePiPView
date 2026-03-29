@@ -1,4 +1,4 @@
-import { ExternalLink, Minus, X } from "lucide-react";
+import { ExternalLink, ListOrdered, Minus, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 
 interface YouTubePlayerProps {
@@ -77,6 +77,12 @@ export function YouTubePlayer({
           } else if (data.info === 2) {
             // Paused
             state.isPaused = true;
+          } else if (data.info === 0) {
+            // Ended
+            state.isPaused = true;
+            if (window.electronAPI?.notifyVideoEnded) {
+              window.electronAPI.notifyVideoEnded();
+            }
           }
         }
 
@@ -138,11 +144,14 @@ export function YouTubePlayer({
 
       progressInterval = setInterval(() => {
         if (!state.isPaused && state.estimatedDuration > 0) {
-          const elapsed = (Date.now() - state.videoStartTime) / 1000;
-          if (elapsed <= state.estimatedDuration && elapsed >= 0) {
-            state.lastKnownTime = elapsed;
+          // Estimar tempo baseado no último tempo conhecido do YouTube + tempo decorrido
+          const now = Date.now();
+          const elapsed = (now - state.videoStartTime) / 1000;
+          const estimatedTime = Math.min(elapsed, state.estimatedDuration);
+          if (estimatedTime >= 0) {
+            // Não sobrescrever lastKnownTime - usar apenas para notificação visual
             progressCallbacks.forEach((cb) =>
-              cb(elapsed, state.estimatedDuration)
+              cb(estimatedTime, state.estimatedDuration)
             );
           }
         }
@@ -230,11 +239,67 @@ export function YouTubePlayer({
                 }),
                 "https://www.youtube.com"
               );
+              // Solicitar tempo atual e duração diretamente
+              iframe.contentWindow.postMessage(
+                JSON.stringify({
+                  event: "command",
+                  func: "getCurrentTime",
+                  args: "",
+                }),
+                "https://www.youtube.com"
+              );
+              iframe.contentWindow.postMessage(
+                JSON.stringify({
+                  event: "command",
+                  func: "getDuration",
+                  args: "",
+                }),
+                "https://www.youtube.com"
+              );
               // Também solicitar estado atual
               iframe.contentWindow.postMessage(
                 JSON.stringify({
                   event: "listening",
                   id: iframeRef.current?.id || "widget",
+                }),
+                "https://www.youtube.com"
+              );
+            }
+          },
+          setVolume: (level: number) => {
+            const iframe = iframeRef.current;
+            if (iframe?.contentWindow) {
+              iframe.contentWindow.postMessage(
+                JSON.stringify({
+                  event: "command",
+                  func: "setVolume",
+                  args: [level],
+                }),
+                "https://www.youtube.com"
+              );
+            }
+          },
+          mute: () => {
+            const iframe = iframeRef.current;
+            if (iframe?.contentWindow) {
+              iframe.contentWindow.postMessage(
+                JSON.stringify({
+                  event: "command",
+                  func: "mute",
+                  args: "",
+                }),
+                "https://www.youtube.com"
+              );
+            }
+          },
+          unMute: () => {
+            const iframe = iframeRef.current;
+            if (iframe?.contentWindow) {
+              iframe.contentWindow.postMessage(
+                JSON.stringify({
+                  event: "command",
+                  func: "unMute",
+                  args: "",
                 }),
                 "https://www.youtube.com"
               );
@@ -304,6 +369,19 @@ export function YouTubePlayer({
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
         title="YouTube video player"
       />
+      <div
+        className="queue-button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (window.electronAPI?.openQueueWindow) {
+            window.electronAPI.openQueueWindow();
+          }
+        }}
+        title="Playlist"
+      >
+        <ListOrdered size={18} />
+      </div>
       <div
         className="change-video-button"
         onClick={(e) => {

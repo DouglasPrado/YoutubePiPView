@@ -11,7 +11,25 @@ try {
     },
     openExternalUrl: (url) => ipcRenderer.invoke('open-external-url', url),
     minimizeWindow: () => ipcRenderer.invoke('minimize-window'),
-    closeWindow: () => ipcRenderer.invoke('close-window')
+    closeWindow: () => ipcRenderer.invoke('close-window'),
+    // Queue/Playlist
+    openQueueWindow: () => ipcRenderer.invoke('open-queue-window'),
+    getQueue: () => ipcRenderer.invoke('get-queue'),
+    setQueue: (items) => ipcRenderer.invoke('set-queue', items),
+    removeFromQueue: (id) => ipcRenderer.invoke('remove-from-queue', id),
+    clearQueue: () => ipcRenderer.invoke('clear-queue'),
+    playFromQueue: (index) => ipcRenderer.invoke('play-from-queue', index),
+    notifyVideoEnded: () => ipcRenderer.invoke('video-ended'),
+    onPlayVideo: (callback) => {
+      const handler = (_event, videoId) => callback(videoId);
+      ipcRenderer.on('play-video', handler);
+      return () => ipcRenderer.removeListener('play-video', handler);
+    },
+    onQueueUpdated: (callback) => {
+      const handler = (_event, state) => callback(state);
+      ipcRenderer.on('queue-updated', handler);
+      return () => ipcRenderer.removeListener('queue-updated', handler);
+    }
   });
 } catch (error) {
   console.error('[PRELOAD] Error exposing electronAPI:', error);
