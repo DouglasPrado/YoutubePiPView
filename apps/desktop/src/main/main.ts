@@ -2,19 +2,14 @@ import { app, BrowserWindow, ipcMain, Tray, nativeImage, shell } from 'electron'
 import { createWindow, createQueueWindow } from './window';
 import { registerShortcuts, unregisterShortcuts } from './shortcuts';
 import { stopServer } from './server';
+import { initQueueStore, getQueue, saveQueue, broadcastQueueUpdate, playVideoNow } from './queue-store';
 import Store from 'electron-store';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
+import type { QueueItem, QueueState } from '../types/index';
 
-interface QueueItem {
-  id: string;
-  videoId: string;
-  url: string;
-}
-
-interface QueueState {
-  items: QueueItem[];
-  currentIndex: number;
-}
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const store = new Store<{
   lastVideoId?: string;
@@ -27,21 +22,49 @@ let queueWindow: InstanceType<typeof BrowserWindow> | null = null;
 let tray: InstanceType<typeof Tray> | null = null;
 let isQuitting = false;
 
-function getQueue(): QueueState {
-  return store.get('queue') || { items: [], currentIndex: -1 };
+initQueueStore(store, () => ({ main: mainWindow, queue: queueWindow }));
+
+// Register ytview:// protocol
+if (process.defaultApp) {
+  if (process.argv.length >= 2) {
+    app.setAsDefaultProtocolClient('ytview', process.execPath, [path.resolve(process.argv[1])]);
+  }
+} else {
+  app.setAsDefaultProtocolClient('ytview');
 }
 
-function saveQueue(state: QueueState): void {
-  store.set('queue', state);
+function handleProtocolUrl(url: string) {
+  try {
+    const parsed = new URL(url);
+    if (parsed.pathname === '/play' || parsed.host === 'play') {
+      const videoId = parsed.searchParams.get('v');
+      if (videoId) {
+        // Wait for window to be ready before playing
+        const tryPlay = () => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            playVideoNow(videoId);
+          } else {
+            setTimeout(tryPlay, 500);
+          }
+        };
+        tryPlay();
+      }
+    }
+  } catch {
+    // Invalid URL, ignore
+  }
 }
 
-function broadcastQueueUpdate(state: QueueState): void {
-  if (queueWindow && !queueWindow.isDestroyed()) {
-    queueWindow.webContents.send('queue-updated', state);
-  }
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.webContents.send('queue-updated', state);
-  }
+// macOS: handle protocol URL when app is already running
+app.on('open-url', (event, url) => {
+  event.preventDefault();
+  handleProtocolUrl(url);
+});
+
+// Handle protocol URL from launch args (Windows/Linux)
+const protocolArg = process.argv.find(arg => arg.startsWith('ytview://'));
+if (protocolArg) {
+  app.whenReady().then(() => handleProtocolUrl(protocolArg));
 }
 
 app.whenReady().then(async () => {

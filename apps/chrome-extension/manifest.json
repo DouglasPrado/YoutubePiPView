@@ -3,7 +3,8 @@
   "name": "YouTube PiP View",
   "version": "1.0.0",
   "description": "Watch YouTube videos in a Picture-in-Picture floating window",
-  "permissions": ["activeTab", "storage"],
+  "permissions": ["activeTab", "tabs", "storage"],
+  "host_permissions": ["http://localhost:8765/*"],
   "action": {
     "default_popup": "src/popup/index.html",
     "default_icon": {
@@ -19,7 +20,8 @@
   "content_scripts": [
     {
       "matches": ["*://*.youtube.com/*"],
-      "js": ["src/content/content.ts"]
+      "js": ["src/content/content.ts"],
+      "run_at": "document_idle"
     }
   ],
   "icons": {

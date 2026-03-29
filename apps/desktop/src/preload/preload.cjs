@@ -4,6 +4,8 @@ try {
   contextBridge.exposeInMainWorld('electronAPI', {
     getStoredVideo: () => ipcRenderer.invoke('get-stored-video'),
     saveVideo: (videoId) => ipcRenderer.invoke('save-video', videoId),
+    getStoredVolume: () => ipcRenderer.invoke('get-stored-volume'),
+    saveVolume: (volume) => ipcRenderer.invoke('save-volume', volume),
     getWindowSize: () => ipcRenderer.invoke('get-window-size'),
     saveWindowSize: (size) => ipcRenderer.invoke('save-window-size', size),
     moveWindow: (deltaX, deltaY) => {

@@ -6,7 +6,7 @@
 
 body {
   width: 350px;
-  min-height: 200px;
+  min-height: 160px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   background: #1a1a2e;
   color: #eee;
@@ -26,40 +26,48 @@ body {
   color: #fff;
 }
 
-.popup-form {
-  display: flex;
-  gap: 8px;
-}
-
-.popup-input {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #333;
-  border-radius: 6px;
-  background: #16213e;
-  color: #eee;
+.popup-loading {
+  text-align: center;
+  color: #888;
   font-size: 13px;
-  outline: none;
+  padding: 20px 0;
 }
 
-.popup-input:focus {
-  border-color: #e94560;
+.popup-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 0;
+  text-align: center;
+}
+
+.popup-empty p {
+  color: #888;
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .popup-button {
-  padding: 8px 16px;
+  padding: 10px 16px;
   border: none;
   border-radius: 6px;
   background: #e94560;
   color: #fff;
-  font-size: 13px;
-  font-weight: 500;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
+  width: 100%;
 }
 
 .popup-button:hover {
   background: #c73652;
+}
+
+.popup-button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .popup-error {
@@ -71,7 +79,7 @@ body {
 .popup-preview {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
 }
 
@@ -80,12 +88,14 @@ body {
   border-radius: 8px;
 }
 
-.popup-actions {
-  display: flex;
-  gap: 8px;
-  width: 100%;
+.pip-opening {
+  background: #3a3a5e;
 }
 
-.pip-button {
-  flex: 1;
+.pip-success {
+  background: #1b3d2a;
+}
+
+.pip-error {
+  background: #e94560;
 }

@@ -1,6 +1,7 @@
 import * as http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
+import { getQueue, addItemsToQueue, playVideoNow } from './queue-store';
 
 let server: http.Server | null = null;
 let serverPort: number | null = null;
@@ -80,8 +81,80 @@ export async function startServer(distPath: string): Promise<void> {
   const port = await findAvailablePort();
 
   server = http.createServer((req, res) => {
-    // Normalizar a URL removendo query strings
     const urlPath = req.url?.split('?')[0] || '/';
+
+    // API routes
+    if (urlPath.startsWith('/api/')) {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+      if (req.method === 'OPTIONS') {
+        res.writeHead(204);
+        res.end();
+        return;
+      }
+
+      if (urlPath === '/api/health' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok' }));
+        return;
+      }
+
+      if (urlPath === '/api/queue' && req.method === 'GET') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify(getQueue()));
+        return;
+      }
+
+      if (urlPath === '/api/play' && req.method === 'POST') {
+        let body = '';
+        req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+        req.on('end', () => {
+          try {
+            const { videoId } = JSON.parse(body);
+            if (!videoId || typeof videoId !== 'string') {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'videoId is required' }));
+              return;
+            }
+            const updatedQueue = playVideoNow(videoId);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(updatedQueue));
+          } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+          }
+        });
+        return;
+      }
+
+      if (urlPath === '/api/queue/add' && req.method === 'POST') {
+        let body = '';
+        req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
+        req.on('end', () => {
+          try {
+            const { items } = JSON.parse(body);
+            if (!Array.isArray(items) || items.length === 0) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify({ error: 'items array is required' }));
+              return;
+            }
+            const updatedQueue = addItemsToQueue(items);
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify(updatedQueue));
+          } catch (err) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+          }
+        });
+        return;
+      }
+
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Not found' }));
+      return;
+    }
 
     // Determinar o caminho do arquivo
     let filePath = path.join(distPath, urlPath === '/' ? 'index.html' : urlPath);

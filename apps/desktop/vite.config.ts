@@ -1,7 +1,23 @@
 import react from "@vitejs/plugin-react";
 import { resolve } from "path";
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import electron from "vite-plugin-electron";
+import { copyFileSync, mkdirSync } from "fs";
+
+// Plugin that copies preload.cjs as-is (no transformation) to dist-electron
+function copyPreloadPlugin(): Plugin {
+  const src = resolve(__dirname, "src/preload/preload.cjs");
+  const destDir = resolve(__dirname, "dist-electron/preload");
+  const dest = resolve(destDir, "preload.cjs");
+
+  return {
+    name: "copy-preload",
+    writeBundle() {
+      mkdirSync(destDir, { recursive: true });
+      copyFileSync(src, dest);
+    },
+  };
+}
 
 export default defineConfig({
   root: "src/renderer",
@@ -23,6 +39,7 @@ export default defineConfig({
                 "fs",
                 "http",
                 "url",
+                "crypto",
               ],
               output: {
                 format: "es",
@@ -35,34 +52,7 @@ export default defineConfig({
               "@": resolve(__dirname, "./src"),
             },
           },
-        },
-      },
-      {
-        entry: "../preload/preload.cjs",
-        onstart(options) {
-          options.reload();
-        },
-        vite: {
-          build: {
-            outDir: "../../dist-electron/preload",
-            copyPublicDir: false,
-            rollupOptions: {
-              external: ["electron"],
-              output: {
-                format: "cjs",
-                entryFileNames: "preload.cjs",
-                preserveModules: false,
-              },
-            },
-            commonjsOptions: {
-              transformMixedEsModules: false,
-            },
-          },
-          resolve: {
-            alias: {
-              "@": resolve(__dirname, "./src"),
-            },
-          },
+          plugins: [copyPreloadPlugin()],
         },
       },
     ]),
