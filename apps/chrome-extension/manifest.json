@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "YouTube PiP View",
+  "version": "1.0.0",
+  "description": "Watch YouTube videos in a Picture-in-Picture floating window",
+  "permissions": ["activeTab", "storage"],
+  "action": {
+    "default_popup": "src/popup/index.html",
+    "default_icon": {
+      "16": "public/icons/icon16.png",
+      "48": "public/icons/icon48.png",
+      "128": "public/icons/icon128.png"
+    }
+  },
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["src/content/content.ts"]
+    }
+  ],
+  "icons": {
+    "16": "public/icons/icon16.png",
+    "48": "public/icons/icon48.png",
+    "128": "public/icons/icon128.png"
+  }
+}

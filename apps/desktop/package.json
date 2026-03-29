@@ -1,0 +1,42 @@
+{
+  "name": "@ytview/desktop",
+  "version": "1.0.0",
+  "description": "YouTube Picture-in-Picture desktop app for macOS",
+  "private": true,
+  "main": "electron-loader.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build && cp src/preload/preload.cjs dist-electron/preload/preload.cjs && cp electron-loader.cjs dist-electron/electron-loader.cjs",
+    "preview": "vite preview",
+    "electron:dev": "electron .",
+    "electron:build": "npm run build && electron-builder",
+    "clean": "rm -rf dist dist-electron",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "keywords": [
+    "youtube",
+    "pip",
+    "electron",
+    "macos"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.43",
+    "@types/react-dom": "^18.2.17",
+    "@vitejs/plugin-react": "^4.2.1",
+    "electron": "^28.3.3",
+    "electron-builder": "^24.9.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.8",
+    "vite-plugin-electron": "^0.28.1"
+  },
+  "dependencies": {
+    "@ytview/youtube-utils": "workspace:*",
+    "electron-store": "^8.1.0",
+    "lucide-react": "^0.344.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  }
+}

@@ -35,24 +35,34 @@ O YTView cria uma janela compacta e minimalista que reproduz vídeos do YouTube.
 - Node.js (versão 18 ou superior)
 - npm
 
-## Como criar o aplicativo
+## Baixar
+
+Acesse a página de [Releases](../../releases) do projeto e baixe o arquivo `.dmg` mais recente para macOS. Abra o `.dmg` e arraste o YTView para a pasta **Aplicativos**.
+
+> **Nota:** Como o app não é assinado pela Apple, no primeiro uso o macOS pode bloquear a abertura. Vá em **Ajustes do Sistema > Privacidade e Segurança** e clique em "Abrir mesmo assim".
+
+## Desenvolvimento
+
+Este projeto usa um monorepo com [pnpm workspaces](https://pnpm.io/workspaces) e [Turborepo](https://turbo.build/).
 
 ### Instalar dependências
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### Rodar em modo de desenvolvimento
 
 ```bash
-npm run electron:dev
+pnpm turbo run build --filter=@ytview/youtube-utils
+cd apps/desktop && npm run electron:dev
 ```
 
 ### Buildar o aplicativo (.app / .dmg)
 
 ```bash
-npm run electron:build
+pnpm turbo run build
+cd apps/desktop && npm run electron:build
 ```
 
-O comando acima compila o TypeScript, builda o frontend com Vite e empacota tudo com `electron-builder`, gerando o `.app` e/ou `.dmg` para macOS.
+O `.dmg` será gerado em `apps/desktop/dist/`.
