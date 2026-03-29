@@ -32,3 +32,27 @@ O YTView cria uma janela compacta e minimalista que reproduz vídeos do YouTube.
 ## Requisitos
 
 - macOS (versão compatível com Electron)
+- Node.js (versão 18 ou superior)
+- npm
+
+## Como criar o aplicativo
+
+### Instalar dependências
+
+```bash
+npm install
+```
+
+### Rodar em modo de desenvolvimento
+
+```bash
+npm run electron:dev
+```
+
+### Buildar o aplicativo (.app / .dmg)
+
+```bash
+npm run electron:build
+```
+
+O comando acima compila o TypeScript, builda o frontend com Vite e empacota tudo com `electron-builder`, gerando o `.app` e/ou `.dmg` para macOS.
