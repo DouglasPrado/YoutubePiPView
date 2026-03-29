@@ -54,7 +54,7 @@ pnpm install
 ### Rodar em modo de desenvolvimento
 
 ```bash
-pnpm turbo run build --filter=@ytview/youtube-utils
+pnpm turbo run build
 cd apps/desktop && npm run electron:dev
 ```
 
