@@ -321,9 +321,16 @@ ipcMain.handle('play-from-queue', (_: any, index: number) => {
 
 ipcMain.handle('video-ended', () => {
   const queue = getQueue();
-  if (queue.currentIndex < 0) return;
+  if (queue.items.length === 0) return;
 
-  const nextIndex = queue.currentIndex + 1;
+  // If not currently tracking a position in the queue, start from the beginning
+  let nextIndex: number;
+  if (queue.currentIndex < 0) {
+    nextIndex = 0;
+  } else {
+    nextIndex = queue.currentIndex + 1;
+  }
+
   if (nextIndex < queue.items.length) {
     queue.currentIndex = nextIndex;
     saveQueue(queue);

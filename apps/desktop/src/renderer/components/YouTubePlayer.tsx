@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 interface YouTubePlayerProps {
   videoId: string | null;
+  playKey?: number;
   onPlayerClick: () => void;
   isLoading: boolean;
   onPlayerReady?: (player: any) => void;
@@ -11,6 +12,7 @@ interface YouTubePlayerProps {
 
 export function YouTubePlayer({
   videoId,
+  playKey = 0,
   onPlayerClick,
   isLoading,
   onPlayerReady,
@@ -34,7 +36,7 @@ export function YouTubePlayer({
 
   console.log("[YouTubePlayer] Renderizando com videoId:", videoId);
 
-  // Atualizar iframe quando videoId mudar
+  // Atualizar iframe quando videoId ou playKey mudar
   useEffect(() => {
     if (iframeRef.current && videoId) {
       const currentOrigin = window.location.origin || "http://localhost:8765";
@@ -50,7 +52,7 @@ export function YouTubePlayer({
         estimatedDuration: 0,
       };
     }
-  }, [videoId]);
+  }, [videoId, playKey]);
 
   // Criar player com tracking de progresso via mensagens do YouTube
   useEffect(() => {
@@ -328,7 +330,7 @@ export function YouTubePlayer({
       if (progressInterval) clearInterval(progressInterval);
       window.removeEventListener("message", messageHandler);
     };
-  }, [videoId, onPlayerReady]);
+  }, [videoId, playKey, onPlayerReady]);
 
   // Agora podemos fazer o return condicional
   if (!videoId) {
