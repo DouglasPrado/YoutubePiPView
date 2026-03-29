@@ -54,15 +54,21 @@ app.whenReady().then(async () => {
   // Criar ícone na barra de menu (Tray) - macOS
   if (process.platform === 'darwin') {
     try {
-      // Criar um ícone simples (pode ser substituído por um arquivo de imagem)
-      const iconPath = path.join(__dirname, '../../assets/tray-icon.png');
+      // Template icon para macOS (adapta automaticamente ao tema claro/escuro)
+      const iconPath = path.join(__dirname, '../../assets/tray-iconTemplate.png');
       let trayImage;
 
       try {
         trayImage = nativeImage.createFromPath(iconPath);
+        trayImage.setTemplateImage(true);
       } catch (e) {
-        // Se não houver ícone, criar um ícone simples
-        trayImage = nativeImage.createEmpty();
+        // Fallback para ícone regular
+        const fallbackPath = path.join(__dirname, '../../assets/tray-icon.png');
+        try {
+          trayImage = nativeImage.createFromPath(fallbackPath);
+        } catch (e2) {
+          trayImage = nativeImage.createEmpty();
+        }
       }
 
       tray = new Tray(trayImage || nativeImage.createEmpty());
