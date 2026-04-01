@@ -529,6 +529,12 @@ body {
   width: 100%;
 }
 
+.playback-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .video-time {
   color: #fff;
   font-size: 11px;
@@ -564,6 +570,24 @@ body {
 
 .control-button-small:active {
   transform: scale(0.95);
+}
+
+.queue-nav-button svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  color: #fff;
+}
+
+.queue-nav-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.queue-nav-button:disabled:hover {
+  background: rgba(0, 0, 0, 0.7);
+  transform: none;
 }
 
 .video-progress-slider {

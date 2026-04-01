@@ -82,6 +82,11 @@
   background: #cc0000;
 }
 
+.queue-add-button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
 .queue-list {
   flex: 1;
   overflow-y: auto;
@@ -173,6 +178,9 @@
   font-size: 13px;
   font-weight: 500;
   color: #fff;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .queue-item-url {

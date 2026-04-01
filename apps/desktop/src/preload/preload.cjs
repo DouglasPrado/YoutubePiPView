@@ -19,10 +19,11 @@ try {
     openQueueWindow: () => ipcRenderer.invoke('open-queue-window'),
     getQueue: () => ipcRenderer.invoke('get-queue'),
     setQueue: (items) => ipcRenderer.invoke('set-queue', items),
+    addToQueue: (items) => ipcRenderer.invoke('add-to-queue', items),
     removeFromQueue: (id) => ipcRenderer.invoke('remove-from-queue', id),
     clearQueue: () => ipcRenderer.invoke('clear-queue'),
     playFromQueue: (index) => ipcRenderer.invoke('play-from-queue', index),
-    notifyVideoEnded: () => ipcRenderer.invoke('video-ended'),
+    notifyVideoEnded: (videoId) => ipcRenderer.invoke('video-ended', videoId),
     onPlayVideo: (callback) => {
       const handler = (_event, videoId) => callback(videoId);
       ipcRenderer.on('play-video', handler);

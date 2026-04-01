@@ -95,7 +95,7 @@ export async function startServer(distPath: string): Promise<void> {
       if (urlPath === '/api/queue/add' && req.method === 'POST') {
         let body = '';
         req.on('data', (chunk: Buffer) => { body += chunk.toString(); });
-        req.on('end', () => {
+        req.on('end', async () => {
           try {
             const { items } = JSON.parse(body);
             if (!Array.isArray(items) || items.length === 0) {
@@ -103,7 +103,7 @@ export async function startServer(distPath: string): Promise<void> {
               res.end(JSON.stringify({ error: 'items array is required' }));
               return;
             }
-            const updatedQueue = addItemsToQueue(items);
+            const updatedQueue = await addItemsToQueue(items);
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify(updatedQueue));
           } catch (err) {
