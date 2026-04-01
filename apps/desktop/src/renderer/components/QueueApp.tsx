@@ -1,23 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, Trash2, X } from "lucide-react";
 import { useVideoId } from "../hooks/useVideoId";
+import type { QueueItem, QueueState } from "../../types";
 import "../styles/queue.css";
-
-interface QueueItem {
-  id: string;
-  videoId: string;
-  url: string;
-}
-
-interface QueueState {
-  items: QueueItem[];
-  currentIndex: number;
-}
 
 export function QueueApp() {
   const [queue, setQueue] = useState<QueueState>({ items: [], currentIndex: -1 });
   const [inputValue, setInputValue] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const extractVideoId = useVideoId();
 
@@ -38,7 +29,7 @@ export function QueueApp() {
     return cleanup;
   }, []);
 
-  const handleAddVideos = () => {
+  const handleAddVideos = async () => {
     const text = inputValue.trim();
     if (!text) {
       setError("Cole URLs do YouTube para adicionar à fila");
@@ -46,37 +37,45 @@ export function QueueApp() {
     }
 
     const lines = text.split(/[\n,]+/).map((l) => l.trim()).filter(Boolean);
-    const newItems: QueueItem[] = [];
+    const parsedItems: Array<{ videoId: string; url: string }> = [];
     const invalidLines: string[] = [];
 
     for (const line of lines) {
       const videoId = extractVideoId(line);
       if (videoId) {
-        newItems.push({
-          id: `${videoId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          videoId,
-          url: line,
-        });
+        parsedItems.push({ videoId, url: line });
       } else {
         invalidLines.push(line);
       }
     }
 
-    if (newItems.length === 0) {
+    if (parsedItems.length === 0) {
       setError("Nenhuma URL válida do YouTube encontrada");
       return;
     }
 
-    const updatedItems = [...queue.items, ...newItems];
     setError(null);
-    setInputValue("");
-
-    if (window.electronAPI?.setQueue) {
-      window.electronAPI.setQueue(updatedItems);
+    setIsAdding(true);
+    try {
+      if (window.electronAPI?.addToQueue) {
+        await window.electronAPI.addToQueue(parsedItems);
+        setInputValue("");
+      } else if (window.electronAPI?.setQueue) {
+        const fallbackItems: QueueItem[] = parsedItems.map((item) => ({
+          id: `${item.videoId}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          videoId: item.videoId,
+          url: item.url,
+          title: item.videoId,
+        }));
+        await window.electronAPI.setQueue([...queue.items, ...fallbackItems]);
+        setInputValue("");
+      }
+    } finally {
+      setIsAdding(false);
     }
 
     if (invalidLines.length > 0) {
-      setError(`${newItems.length} adicionado(s). ${invalidLines.length} URL(s) inválida(s) ignorada(s).`);
+      setError(`${parsedItems.length} adicionado(s). ${invalidLines.length} URL(s) inválida(s) ignorada(s).`);
     }
   };
 
@@ -125,8 +124,8 @@ export function QueueApp() {
           rows={4}
         />
         {error && <span className="queue-error">{error}</span>}
-        <button className="queue-add-button" onClick={handleAddVideos}>
-          Adicionar à fila
+        <button className="queue-add-button" onClick={handleAddVideos} disabled={isAdding}>
+          {isAdding ? "Adicionando..." : "Adicionar à fila"}
         </button>
       </div>
 
@@ -149,7 +148,9 @@ export function QueueApp() {
                 alt=""
               />
               <div className="queue-item-info">
-                <span className="queue-item-id">{item.videoId}</span>
+                <span className="queue-item-id" title={item.title || item.videoId}>
+                  {item.title || item.videoId}
+                </span>
                 <span className="queue-item-url" title={item.url}>
                   {item.url.length > 45 ? item.url.slice(0, 45) + "..." : item.url}
                 </span>

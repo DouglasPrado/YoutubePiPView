@@ -2,7 +2,7 @@ import { app, BrowserWindow, ipcMain, Tray, nativeImage, shell } from 'electron'
 import { createWindow, createQueueWindow } from './window';
 import { registerShortcuts, unregisterShortcuts } from './shortcuts';
 import { stopServer } from './server';
-import { initQueueStore, getQueue, saveQueue, broadcastQueueUpdate, playVideoNow } from './queue-store';
+import { initQueueStore, getQueue, saveQueue, broadcastQueueUpdate, playVideoNow, addItemsToQueue, hydrateQueueTitles } from './queue-store';
 import Store from 'electron-store';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -21,6 +21,9 @@ let mainWindow: InstanceType<typeof BrowserWindow> | null = null;
 let queueWindow: InstanceType<typeof BrowserWindow> | null = null;
 let tray: InstanceType<typeof Tray> | null = null;
 let isQuitting = false;
+let lastProcessedEndedEvent:
+  | { key: string; timestamp: number }
+  | null = null;
 
 initQueueStore(store, () => ({ main: mainWindow, queue: queueWindow }));
 
@@ -267,8 +270,8 @@ ipcMain.handle('open-queue-window', async () => {
   });
 });
 
-ipcMain.handle('get-queue', () => {
-  return getQueue();
+ipcMain.handle('get-queue', async () => {
+  return hydrateQueueTitles();
 });
 
 ipcMain.handle('set-queue', (_: any, items: QueueItem[]) => {
@@ -276,6 +279,11 @@ ipcMain.handle('set-queue', (_: any, items: QueueItem[]) => {
   queue.items = items;
   saveQueue(queue);
   broadcastQueueUpdate(queue);
+});
+
+ipcMain.handle('add-to-queue', async (_: any, items: Array<{ videoId: string; url: string; title?: string }>) => {
+  if (!Array.isArray(items) || items.length === 0) return getQueue();
+  return addItemsToQueue(items);
 });
 
 ipcMain.handle('remove-from-queue', (_: any, id: string) => {
@@ -319,11 +327,39 @@ ipcMain.handle('play-from-queue', (_: any, index: number) => {
   broadcastQueueUpdate(queue);
 });
 
-ipcMain.handle('video-ended', () => {
+ipcMain.handle('video-ended', (_: any, endedVideoId?: string) => {
   const queue = getQueue();
-  if (queue.currentIndex < 0) return;
+  if (queue.items.length === 0) return;
 
-  const nextIndex = queue.currentIndex + 1;
+  let endedIndex = queue.currentIndex;
+
+  // If we received an explicit videoId, prefer matching by id to handle desync.
+  if (endedVideoId) {
+    if (endedIndex >= 0 && queue.items[endedIndex]?.videoId === endedVideoId) {
+      // current index already points to the ended video
+    } else {
+      const matchedIndex = queue.items.findIndex(item => item.videoId === endedVideoId);
+      if (matchedIndex === -1) return;
+      endedIndex = matchedIndex;
+    }
+  }
+
+  if (endedIndex < 0 || endedIndex >= queue.items.length) return;
+
+  // Ignore duplicated ended events for the same queue entry in a short time window.
+  const dedupeKey = `${endedIndex}:${queue.items[endedIndex].videoId}`;
+  const now = Date.now();
+  if (
+    lastProcessedEndedEvent &&
+    lastProcessedEndedEvent.key === dedupeKey &&
+    now - lastProcessedEndedEvent.timestamp < 2000
+  ) {
+    return;
+  }
+  lastProcessedEndedEvent = { key: dedupeKey, timestamp: now };
+
+  const nextIndex = endedIndex + 1;
+
   if (nextIndex < queue.items.length) {
     queue.currentIndex = nextIndex;
     saveQueue(queue);

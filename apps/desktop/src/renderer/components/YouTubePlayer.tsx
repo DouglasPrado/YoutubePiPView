@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 interface YouTubePlayerProps {
   videoId: string | null;
+  playKey?: number;
   onPlayerClick: () => void;
   isLoading: boolean;
   onPlayerReady?: (player: any) => void;
@@ -11,6 +12,7 @@ interface YouTubePlayerProps {
 
 export function YouTubePlayer({
   videoId,
+  playKey = 0,
   onPlayerClick,
   isLoading,
   onPlayerReady,
@@ -34,7 +36,7 @@ export function YouTubePlayer({
 
   console.log("[YouTubePlayer] Renderizando com videoId:", videoId);
 
-  // Atualizar iframe quando videoId mudar
+  // Atualizar iframe quando videoId ou playKey mudar
   useEffect(() => {
     if (iframeRef.current && videoId) {
       const currentOrigin = window.location.origin || "http://localhost:8765";
@@ -50,7 +52,7 @@ export function YouTubePlayer({
         estimatedDuration: 0,
       };
     }
-  }, [videoId]);
+  }, [videoId, playKey]);
 
   // Criar player com tracking de progresso via mensagens do YouTube
   useEffect(() => {
@@ -61,6 +63,30 @@ export function YouTubePlayer({
       (currentTime: number, duration: number) => void
     > = [];
     const state = videoStateRef.current;
+    let endedNotified = false;
+
+    const notifyVideoEndedOnce = () => {
+      if (endedNotified) return;
+      endedNotified = true;
+      state.isPaused = true;
+      if (window.electronAPI?.notifyVideoEnded) {
+        window.electronAPI.notifyVideoEnded(videoId);
+      }
+    };
+
+    const applyPlayerState = (playerState: number) => {
+      if (playerState === 1) {
+        // Playing
+        state.isPaused = false;
+        state.videoStartTime = Date.now() - state.lastKnownTime * 1000;
+      } else if (playerState === 2) {
+        // Paused
+        state.isPaused = true;
+      } else if (playerState === 0) {
+        // Ended
+        notifyVideoEndedOnce();
+      }
+    };
 
     // Listener global para mensagens do YouTube
     const messageHandler = (event: MessageEvent) => {
@@ -71,20 +97,12 @@ export function YouTubePlayer({
 
         // Capturar estado do vídeo
         if (data?.event === "onStateChange") {
-          if (data.info === 1) {
-            // Playing
-            state.isPaused = false;
-            state.videoStartTime = Date.now() - state.lastKnownTime * 1000;
-          } else if (data.info === 2) {
-            // Paused
-            state.isPaused = true;
-          } else if (data.info === 0) {
-            // Ended
-            state.isPaused = true;
-            if (window.electronAPI?.notifyVideoEnded) {
-              window.electronAPI.notifyVideoEnded();
-            }
-          }
+          applyPlayerState(data.info);
+        }
+
+        // Fallback: estado do player vem em infoDelivery após getPlayerState
+        if (typeof data?.info?.playerState === "number") {
+          applyPlayerState(data.info.playerState);
         }
 
         // Capturar informações de progresso
@@ -257,6 +275,14 @@ export function YouTubePlayer({
                 }),
                 "https://www.youtube.com"
               );
+              iframe.contentWindow.postMessage(
+                JSON.stringify({
+                  event: "command",
+                  func: "getPlayerState",
+                  args: "",
+                }),
+                "https://www.youtube.com"
+              );
               // Também solicitar estado atual
               iframe.contentWindow.postMessage(
                 JSON.stringify({
@@ -328,7 +354,7 @@ export function YouTubePlayer({
       if (progressInterval) clearInterval(progressInterval);
       window.removeEventListener("message", messageHandler);
     };
-  }, [videoId, onPlayerReady]);
+  }, [videoId, playKey, onPlayerReady]);
 
   // Agora podemos fazer o return condicional
   if (!videoId) {

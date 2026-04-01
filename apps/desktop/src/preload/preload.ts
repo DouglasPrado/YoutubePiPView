@@ -20,10 +20,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   openQueueWindow: () => ipcRenderer.invoke('open-queue-window'),
   getQueue: () => ipcRenderer.invoke('get-queue'),
   setQueue: (items: QueueItem[]) => ipcRenderer.invoke('set-queue', items),
+  addToQueue: (items: Array<{ videoId: string; url: string; title?: string }>) =>
+    ipcRenderer.invoke('add-to-queue', items),
   removeFromQueue: (id: string) => ipcRenderer.invoke('remove-from-queue', id),
   clearQueue: () => ipcRenderer.invoke('clear-queue'),
   playFromQueue: (index: number) => ipcRenderer.invoke('play-from-queue', index),
-  notifyVideoEnded: () => ipcRenderer.invoke('video-ended'),
+  notifyVideoEnded: (videoId?: string) => ipcRenderer.invoke('video-ended', videoId),
   onPlayVideo: (callback: (videoId: string) => void) => {
     const handler = (_event: any, videoId: string) => callback(videoId);
     ipcRenderer.on('play-video', handler);
@@ -54,10 +56,11 @@ declare global {
       openQueueWindow: () => Promise<void>;
       getQueue: () => Promise<QueueState>;
       setQueue: (items: QueueItem[]) => Promise<void>;
+      addToQueue: (items: Array<{ videoId: string; url: string; title?: string }>) => Promise<QueueState>;
       removeFromQueue: (id: string) => Promise<void>;
       clearQueue: () => Promise<void>;
       playFromQueue: (index: number) => Promise<void>;
-      notifyVideoEnded: () => Promise<void>;
+      notifyVideoEnded: (videoId?: string) => Promise<void>;
       onPlayVideo: (callback: (videoId: string) => void) => () => void;
       onQueueUpdated: (callback: (state: QueueState) => void) => () => void;
     };

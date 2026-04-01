@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { VideoControls } from "./components/VideoControls";
 import { VideoInput } from "./components/VideoInput";
 import { YouTubePlayer } from "./components/YouTubePlayer";
@@ -13,6 +13,9 @@ export function App() {
   const [player, setPlayer] = useState<any>(null);
   const [showControls, setShowControls] = useState(false);
   const [volume, setVolume] = useState(100);
+  const [playKey, setPlayKey] = useState(0);
+  const volumeRef = useRef(volume);
+  volumeRef.current = volume;
 
   useEffect(() => {
     // Carregar último vídeo salvo ao iniciar
@@ -52,10 +55,20 @@ export function App() {
   useEffect(() => {
     if (!window.electronAPI?.onPlayVideo) return;
     const cleanup = window.electronAPI.onPlayVideo((newVideoId: string) => {
-      handleVideoSubmit(newVideoId);
+      // Use state setters directly to avoid stale closure issues
+      setShowInput(false);
+      setAppState("loading");
+      window.electronAPI?.saveVideo(newVideoId).then(() => {
+        // Increment playKey to force reload even if same videoId
+        setPlayKey((k) => k + 1);
+        setVideoId(newVideoId);
+        setTimeout(() => setAppState("idle"), 500);
+      }).catch((err) => {
+        console.error("Erro ao salvar vídeo da fila:", err);
+        setAppState("idle");
+      });
     });
     return cleanup;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handlePlayerClick = () => {
@@ -122,12 +135,12 @@ export function App() {
     }
   };
 
-  const handlePlayerReady = (playerInstance: any) => {
+  const handlePlayerReady = useCallback((playerInstance: any) => {
     setPlayer(playerInstance);
     if (playerInstance?.setVolume) {
-      playerInstance.setVolume(volume);
+      playerInstance.setVolume(volumeRef.current);
     }
-  };
+  }, []);
 
   // Controlar visibilidade dos controles com hover na janela toda
   useEffect(() => {
@@ -172,6 +185,7 @@ export function App() {
       />
       <YouTubePlayer
         videoId={videoId}
+        playKey={playKey}
         onPlayerClick={handlePlayerClick}
         isLoading={isLoading}
         onPlayerReady={handlePlayerReady}

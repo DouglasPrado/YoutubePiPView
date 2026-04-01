@@ -18,6 +18,7 @@ export interface QueueItem {
   id: string;
   videoId: string;
   url: string;
+  title?: string;
 }
 
 export interface QueueState {
